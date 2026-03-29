@@ -11,7 +11,7 @@ export default function BoardPage() {
   const [nicheName, setNicheName] = useState('Портретная фотография')
   const [setupScore, setSetupScore] = useState(45)
   const [boardEquipment, setBoardEquipment] = useState<
-    (EquipmentCatalog & { status?: 'owned' | 'planned' | 'dream' })[]
+    (EquipmentCatalog & { status?: 'owned' | 'planned' | 'dream'; quantity?: number })[]
   >([])
   const [loading, setLoading] = useState(true)
 
@@ -20,10 +20,15 @@ export default function BoardPage() {
       const saved = localStorage.getItem('kitwise-onboarding')
       if (saved) {
         const data = JSON.parse(saved)
-        if (data.niche) setNicheName(data.niche.name)
+        // Backward compat: niches (array) or niche (single)
+        if (data.niches && data.niches.length > 0) {
+          setNicheName(data.niches.map((n: any) => n.name).join(', '))
+        } else if (data.niche) {
+          setNicheName(data.niche.name)
+        }
         if (data.score) setSetupScore(data.score)
 
-        // Map user equipment to full catalog items with status
+        // Map user equipment to full catalog items with status + quantity
         if (data.equipment && data.equipment.length > 0) {
           const mapped = data.equipment
             .map((ue: UserEquipment) => {
@@ -31,7 +36,24 @@ export default function BoardPage() {
                 (e) => e.id === ue.equipment_id
               )
               if (catalogItem) {
-                return { ...catalogItem, status: ue.status }
+                return { ...catalogItem, status: ue.status, quantity: ue.quantity || 1 }
+              }
+              // Custom items
+              if (ue.custom_name) {
+                return {
+                  id: ue.equipment_id,
+                  name: ue.custom_name,
+                  brand: '',
+                  category: ue.category,
+                  subcategory: '',
+                  description: '',
+                  price_min: null,
+                  price_max: null,
+                  image_url: null,
+                  specs: null,
+                  status: ue.status,
+                  quantity: ue.quantity || 1,
+                }
               }
               return null
             })

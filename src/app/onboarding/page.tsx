@@ -120,6 +120,7 @@ export default function OnboardingPage() {
           custom_name: null,
           category: equipment?.category || '',
           status,
+          quantity: 1,
           acquired_at: null,
           notes: null,
         },
@@ -130,6 +131,14 @@ export default function OnboardingPage() {
   const handleRemoveEquipment = (equipmentId: string) => {
     setSelectedEquipment((prev) =>
       prev.filter((e) => e.equipment_id !== equipmentId)
+    )
+  }
+
+  const handleQuantityChange = (equipmentId: string, quantity: number) => {
+    setSelectedEquipment((prev) =>
+      prev.map((e) =>
+        e.equipment_id === equipmentId ? { ...e, quantity } : e
+      )
     )
   }
 
@@ -370,6 +379,7 @@ export default function OnboardingPage() {
                     equipment={equipment}
                     userEquipment={userEquip}
                     onStatusChange={handleEquipmentStatusChange}
+                    onQuantityChange={handleQuantityChange}
                     onRemove={handleRemoveEquipment}
                     showRemove={!!userEquip}
                   />
@@ -465,6 +475,13 @@ export default function OnboardingPage() {
                     }
                   </p>
                 </div>
+              </div>
+
+              <div className="rounded-lg bg-slate-800/50 p-4">
+                <p className="text-xs text-slate-400 mb-1">Единиц техники</p>
+                <p className="text-2xl font-bold text-cyan-400">
+                  {selectedEquipment.reduce((sum, e) => sum + (e.quantity || 1), 0)}
+                </p>
               </div>
             </div>
 

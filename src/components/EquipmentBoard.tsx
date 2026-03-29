@@ -1,20 +1,34 @@
 'use client'
 
-import { EquipmentCatalog, UserEquipment } from '@/lib/types'
-import { categoryIcons, subcategoryIcons } from '@/lib/mockData'
-import { Share2, Download, Camera } from 'lucide-react'
+import { EquipmentCatalog } from '@/lib/types'
+import { getEquipmentSVG, getCategoryColor } from '@/lib/equipmentIcons'
+import { Share2, Camera } from 'lucide-react'
 
 interface EquipmentBoardProps {
-  equipment: (EquipmentCatalog & { status?: 'owned' | 'planned' | 'dream' })[]
+  equipment: (EquipmentCatalog & { status?: 'owned' | 'planned' | 'dream'; quantity?: number })[]
   nicheName: string
   setupScore: number
   userName?: string
 }
 
 const statusColors = {
-  owned: { bg: 'bg-emerald-500/20', border: 'border-emerald-500/60', text: 'text-emerald-300', dot: 'bg-emerald-400' },
-  planned: { bg: 'bg-amber-500/15', border: 'border-amber-500/50', text: 'text-amber-300', dot: 'bg-amber-400' },
-  dream: { bg: 'bg-slate-500/15', border: 'border-slate-600/50', text: 'text-slate-400', dot: 'bg-slate-500' },
+  owned: { bg: 'bg-emerald-500/20', border: 'border-emerald-500/60', text: 'text-emerald-300', dot: 'bg-emerald-400', badge: 'bg-emerald-500/30 text-emerald-200' },
+  planned: { bg: 'bg-amber-500/15', border: 'border-amber-500/50', text: 'text-amber-300', dot: 'bg-amber-400', badge: 'bg-amber-500/30 text-amber-200' },
+  dream: { bg: 'bg-slate-500/15', border: 'border-slate-600/50', text: 'text-slate-400', dot: 'bg-slate-500', badge: 'bg-slate-500/30 text-slate-300' },
+}
+
+const categoryLabels: Record<string, string> = {
+  Camera: 'Камеры',
+  Lens: 'Объективы',
+  Flash: 'Вспышки',
+  Lighting: 'Свет',
+  Audio: 'Аудио',
+  Support: 'Штативы и стабилизаторы',
+  Storage: 'Хранение',
+  Drone: 'Дроны',
+  Computer: 'Техника Apple',
+  Bag: 'Рюкзаки и сумки',
+  Accessory: 'Аксессуары',
 }
 
 export default function EquipmentBoard({ equipment, nicheName, setupScore, userName }: EquipmentBoardProps) {
@@ -32,6 +46,11 @@ export default function EquipmentBoard({ equipment, nicheName, setupScore, userN
 
   const ownedCount = equipment.filter(e => e.status === 'owned').length
   const plannedCount = equipment.filter(e => e.status === 'planned').length
+
+  // Helper to strip brand prefix from name
+  const stripBrandPrefix = (name: string, brand: string): string => {
+    return name.replace(`${brand} `, '').trim()
+  }
 
   const handleShare = async () => {
     const url = window.location.href
@@ -122,61 +141,84 @@ export default function EquipmentBoard({ equipment, nicheName, setupScore, userN
           </div>
 
           {/* Equipment Grid — "items on the table" */}
-          <div className="space-y-5">
+          <div className="space-y-6">
             {sortedCategories.map((category) => (
               <div key={category}>
                 {/* Category label */}
-                <div className="flex items-center gap-2 mb-2.5">
-                  <span className="text-base">{categoryIcons[category] || '📦'}</span>
+                <div className="flex items-center gap-2 mb-4">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: getCategoryColor(category) }}
+                  />
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    {category === 'Camera' ? 'Камеры' :
-                     category === 'Lens' ? 'Объективы' :
-                     category === 'Flash' ? 'Вспышки' :
-                     category === 'Lighting' ? 'Свет' :
-                     category === 'Audio' ? 'Аудио' :
-                     category === 'Support' ? 'Штативы и стабилизаторы' :
-                     category === 'Storage' ? 'Хранение' :
-                     category === 'Drone' ? 'Дроны' :
-                     category === 'Computer' ? 'Техника Apple' :
-                     category === 'Bag' ? 'Рюкзаки и сумки' :
-                     category === 'Accessory' ? 'Аксессуары' : category}
+                    {categoryLabels[category] || category}
                   </span>
                   <div className="flex-1 h-px bg-white/5" />
                 </div>
 
-                {/* Items */}
-                <div className="flex flex-wrap gap-2">
+                {/* Items — Flat lay aesthetic */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {grouped[category].map((item) => {
                     const status = item.status || 'dream'
+                    const quantity = item.quantity || 1
                     const colors = statusColors[status]
-                    const icon = subcategoryIcons[item.subcategory] || categoryIcons[item.category] || '📦'
+                    const svg = getEquipmentSVG(item.category, item.subcategory)
+                    const categoryColor = getCategoryColor(item.category)
 
                     return (
                       <div
                         key={item.id}
                         className={`
-                          group relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border
-                          transition-all duration-200 cursor-default
+                          group relative flex flex-col items-center justify-center
+                          p-4 rounded-2xl border backdrop-blur-sm
+                          transition-all duration-300 cursor-default
                           ${colors.bg} ${colors.border}
-                          hover:scale-[1.02] hover:shadow-lg
+                          hover:scale-105 hover:shadow-xl hover:border-opacity-100
                         `}
-                        title={`${item.name} — ${item.brand}\n${status === 'owned' ? '✅ Есть' : status === 'planned' ? '📋 План' : '💭 Мечта'}`}
+                        style={{
+                          boxShadow: `0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)`,
+                        }}
+                        title={`${stripBrandPrefix(item.name, item.brand)} — ${item.brand}`}
                       >
-                        {/* Status dot */}
-                        <div className={`w-1.5 h-1.5 rounded-full ${colors.dot} flex-shrink-0`} />
-
-                        {/* Icon */}
-                        <span className="text-sm flex-shrink-0">{icon}</span>
+                        {/* SVG Icon Container */}
+                        <div
+                          className="w-12 h-12 mb-2 flex items-center justify-center flex-shrink-0"
+                          style={{ color: categoryColor }}
+                        >
+                          {svg ? (
+                            <div
+                              dangerouslySetInnerHTML={{ __html: svg }}
+                              className="w-full h-full"
+                            />
+                          ) : (
+                            <span className="text-2xl">📦</span>
+                          )}
+                        </div>
 
                         {/* Name */}
-                        <span className={`text-xs font-medium ${colors.text} whitespace-nowrap max-w-[160px] truncate`}>
-                          {item.name.replace(item.brand + ' ', '').replace('Canon ', '').replace('Sony ', '').replace('Nikon ', '').replace('Fujifilm ', '').replace('Panasonic ', '')}
+                        <span className={`text-xs font-semibold ${colors.text} text-center line-clamp-2 mb-1`}>
+                          {stripBrandPrefix(item.name, item.brand)}
                         </span>
 
-                        {/* Brand tiny */}
-                        <span className="text-[10px] text-slate-500 hidden sm:inline flex-shrink-0">
+                        {/* Brand */}
+                        <span className="text-[10px] text-slate-500 text-center mb-2">
                           {item.brand}
                         </span>
+
+                        {/* Status indicator */}
+                        <div className="flex items-center gap-1 mb-2">
+                          <div className={`w-2 h-2 rounded-full ${colors.dot}`} />
+                          <span className="text-[9px] text-slate-400">
+                            {status === 'owned' ? 'Есть' : status === 'planned' ? 'План' : 'Мечта'}
+                          </span>
+                        </div>
+
+                        {/* Quantity Badge */}
+                        {quantity > 1 && (
+                          <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-[10px] font-bold ${colors.badge}`}>
+                            ×{quantity}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -186,32 +228,32 @@ export default function EquipmentBoard({ equipment, nicheName, setupScore, userN
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/5">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-[10px] text-slate-400">Есть</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-white/10">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] text-slate-400 font-medium">Есть</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-[10px] text-slate-400">План</span>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span className="text-[10px] text-slate-400 font-medium">План</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-slate-500" />
-                <span className="text-[10px] text-slate-400">Мечта</span>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-500" />
+                <span className="text-[10px] text-slate-400 font-medium">Мечта</span>
               </div>
             </div>
 
-            <span className="text-[10px] text-slate-500">kitwise-app.vercel.app</span>
+            <span className="text-[10px] text-slate-600">kitwise-app.vercel.app</span>
           </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-center gap-3 mt-6">
+      <div className="flex justify-center gap-3 mt-8">
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 hover:shadow-lg transition-all duration-200"
         >
           <Share2 className="w-4 h-4" />
           Поделиться

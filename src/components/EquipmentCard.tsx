@@ -1,7 +1,7 @@
 'use client'
 
 import { UserEquipment, EquipmentCatalog } from '@/lib/types'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Plus, Minus } from 'lucide-react'
 
 interface EquipmentCardProps {
   equipment: EquipmentCatalog
@@ -10,25 +10,30 @@ interface EquipmentCardProps {
     equipmentId: string,
     status: 'owned' | 'planned' | 'dream'
   ) => void
+  onQuantityChange?: (equipmentId: string, quantity: number) => void
   onRemove?: (id: string) => void
   showRemove?: boolean
+  compact?: boolean
 }
 
 const statusConfig = {
-  owned: { emoji: '🟢', label: 'Есть', color: 'text-green-400' },
-  planned: { emoji: '🟡', label: 'План', color: 'text-yellow-400' },
-  dream: { emoji: '⚫', label: 'Мечта', color: 'text-gray-400' },
+  owned: { emoji: '🟢', label: 'Есть', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/30' },
+  planned: { emoji: '🟡', label: 'План', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30' },
+  dream: { emoji: '⚫', label: 'Мечта', color: 'text-gray-400', bg: 'bg-gray-500/10 border-gray-500/30' },
 }
 
 export default function EquipmentCard({
   equipment,
   userEquipment,
   onStatusChange,
+  onQuantityChange,
   onRemove,
   showRemove,
+  compact,
 }: EquipmentCardProps) {
   const status = (userEquipment?.status as keyof typeof statusConfig) || 'dream'
   const config = statusConfig[status]
+  const quantity = userEquipment?.quantity || 1
 
   const handleStatusCycle = () => {
     if (!onStatusChange) return
@@ -40,6 +45,52 @@ export default function EquipmentCard({
     const currentIndex = statuses.indexOf(status)
     const nextStatus = statuses[(currentIndex + 1) % statuses.length]
     onStatusChange(equipment.id, nextStatus)
+  }
+
+  if (compact) {
+    return (
+      <div className={`card group relative overflow-hidden border ${config.bg} transition-all hover:scale-[1.02]`}>
+        <div className="relative p-3 flex items-center gap-3">
+          <button
+            onClick={handleStatusCycle}
+            className="text-lg flex-shrink-0 hover:scale-110 transition-transform"
+            title={config.label}
+          >
+            {config.emoji}
+          </button>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-slate-100 truncate">{equipment.name}</h3>
+            <p className="text-xs text-slate-500">{equipment.brand}</p>
+          </div>
+          {/* Quantity */}
+          {userEquipment && onQuantityChange && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onQuantityChange(equipment.id, Math.max(1, quantity - 1))}
+                className="w-5 h-5 flex items-center justify-center rounded bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 text-xs"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="text-xs font-bold text-slate-200 w-4 text-center">{quantity}</span>
+              <button
+                onClick={() => onQuantityChange(equipment.id, quantity + 1)}
+                className="w-5 h-5 flex items-center justify-center rounded bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 text-xs"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          {showRemove && onRemove && (
+            <button
+              onClick={() => onRemove(equipment.id)}
+              className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -83,23 +134,44 @@ export default function EquipmentCard({
           {equipment.description}
         </p>
 
-        {/* Status Button */}
-        {onStatusChange ? (
-          <button
-            onClick={handleStatusCycle}
-            className={`flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium transition-all hover:bg-slate-800 ${config.color}`}
-          >
-            <span className="text-lg">{config.emoji}</span>
-            {config.label}
-          </button>
-        ) : (
-          <div
-            className={`flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium ${config.color}`}
-          >
-            <span className="text-lg">{config.emoji}</span>
-            {config.label}
-          </div>
-        )}
+        {/* Status + Quantity Row */}
+        <div className="flex items-center gap-2">
+          {onStatusChange ? (
+            <button
+              onClick={handleStatusCycle}
+              className={`flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium transition-all hover:bg-slate-800 ${config.color}`}
+            >
+              <span className="text-lg">{config.emoji}</span>
+              {config.label}
+            </button>
+          ) : (
+            <div
+              className={`flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium ${config.color}`}
+            >
+              <span className="text-lg">{config.emoji}</span>
+              {config.label}
+            </div>
+          )}
+
+          {/* Quantity control */}
+          {userEquipment && onQuantityChange && (
+            <div className="flex items-center gap-1 ml-auto">
+              <button
+                onClick={() => onQuantityChange(equipment.id, Math.max(1, quantity - 1))}
+                className="w-7 h-7 flex items-center justify-center rounded-md bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-sm font-bold text-slate-200 w-6 text-center">{quantity}</span>
+              <button
+                onClick={() => onQuantityChange(equipment.id, quantity + 1)}
+                className="w-7 h-7 flex items-center justify-center rounded-md bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

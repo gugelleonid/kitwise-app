@@ -51,8 +51,29 @@ export interface UserEquipment {
   custom_name: string | null
   category: string
   status: 'owned' | 'planned' | 'dream'
+  quantity: number
   acquired_at: string | null
   notes: string | null
+}
+
+// Gamification
+export interface Achievement {
+  id: string
+  title: string
+  description: string
+  icon: string
+  condition: (equipment: UserEquipment[], niches: string[]) => boolean
+  xp: number
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'
+}
+
+export interface UserProgress {
+  level: number
+  xp: number
+  xpToNext: number
+  title: string
+  achievements: string[]
+  streak: number
 }
 
 export interface Recommendation {
