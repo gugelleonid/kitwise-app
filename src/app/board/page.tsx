@@ -225,47 +225,59 @@ export default function BoardPage() {
       setUserEquipment(newEquipment)
 
       // Game mechanics
-      if (gameState) {
-        const event = processAction(gameState, {
-          type: 'add_equipment',
-          equipment,
-          count: 1,
-        })
-        setGameState(event.newGameState)
+      if (gameState && selectedNiche) {
+        const { newState, pointsEarned, events: gameEvents } = processAction(
+          gameState,
+          'add',
+          equipment.id,
+          selectedNiche.id,
+          newEquipment,
+          mockEquipmentCatalog,
+          window.innerWidth / 2,
+          window.innerHeight / 2
+        )
+        setGameState(newState)
 
         // Floating text
-        const floatingText: FloatingText = {
-          id: `ft-${Date.now()}`,
-          text: `+${event.pointsAwarded}`,
-          x: Math.random() * 200 - 100,
-          y: 0,
-          color: event.newGameState.combo > 1 ? '#fbbf24' : '#4ade80',
-          timestamp: Date.now(),
+        if (pointsEarned > 0) {
+          const floatingText: FloatingText = {
+            id: `ft-${Date.now()}`,
+            text: `+${pointsEarned}`,
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            color: newState.combo > 1 ? '#fbbf24' : '#4ade80',
+            timestamp: Date.now(),
+          }
+          setFloatingTexts((prev) => [...prev, floatingText])
         }
-        setFloatingTexts((prev) => [...prev, floatingText])
 
-        // Celebrations
-        if (event.celebrations.length > 0) {
-          setCelebrations((prev) => [...prev, ...event.celebrations])
+        // Celebrations from events
+        for (const evt of gameEvents) {
+          if (evt.type === 'combo_milestone' || evt.type === 'streak_milestone' || evt.type === 'category_completed') {
+            const celebData = newState.celebrations.find((c: Celebration) => c.id === evt.celebrationId)
+            if (celebData) {
+              setCelebrations((prev) => [...prev, celebData])
+            }
+          }
         }
 
         // Particles
         if (boardContainerRef.current) {
           const rect = boardContainerRef.current.getBoundingClientRect()
-          const particles = generateParticles(
+          const newParticles = generateParticles(
             rect.width / 2,
             rect.height / 2,
-            event.newGameState.combo
+            8
           )
-          particles.forEach((p) => {
+          newParticles.forEach((p: { id: string; tx: number; ty: number; delay: number }) => {
             const div = document.createElement('div')
             div.style.cssText = `
               position: fixed;
-              left: ${rect.left + p.x}px;
-              top: ${rect.top + p.y}px;
+              left: ${rect.left + rect.width / 2}px;
+              top: ${rect.top + rect.height / 2}px;
               width: 8px;
               height: 8px;
-              background: ${p.color};
+              background: ${['#FF1744', '#FFD700', '#00E5FF', '#76FF03'][p.delay % 4]};
               border-radius: 50%;
               pointer-events: none;
               --tx: ${p.tx}px;
