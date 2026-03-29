@@ -195,7 +195,7 @@ export default function OnboardingPage() {
       setLoading(false)
       setStep('results')
     } else if (step === 'results') {
-      router.push('/dashboard')
+      router.push('/board')
     }
   }
 

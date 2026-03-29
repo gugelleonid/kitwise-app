@@ -135,3 +135,7 @@ button {
 .animate-slide-up {
   animation: slideUp 0.5s ease-out;
 }
+
+.animate-slide-in {
+  animation: slideInRight 0.3s ease-out;
+}

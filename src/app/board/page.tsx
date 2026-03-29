@@ -1,185 +1,173 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { Search, Plus, Trash2, Check, Lightbulb, LayoutGrid, List, Zap, Trophy, Heart, Clipboard } from 'lucide-react'
-import {
-  initializeGameState,
-  processAction,
-  calculateSetupCompletion,
-  formatScore,
-  getNicheRequirements,
-  getEquipmentTierInNiche,
-} from '@/lib/gameEngine'
-import { mockNiches, mockEquipmentCatalog, categoryIcons, mockNicheRequirements } from '@/lib/mockData'
-import { LEVELS, getLevelForXP, getXPProgress } from '@/lib/levels'
-import { QUESTS, checkQuestCompletion, getQuestProgress } from '@/lib/quests'
-import { ACHIEVEMENTS, checkAchievement } from '@/lib/achievements'
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { Search, Plus, Trash2, Check, ChevronDown, ChevronUp, Download, Share2, GripVertical, Zap, Trophy, Star } from 'lucide-react'
+import { mockNiches, mockEquipmentCatalog, categoryIcons } from '@/lib/mockData'
+import { initializeGameState, processAction, calculateSetupCompletion, formatScore } from '@/lib/gameEngine'
+import { getLevelForXP, getXPProgress } from '@/lib/levels'
 import type { UserEquipment, EquipmentCatalog, Niche } from '@/lib/types'
 
 // =====================================================
-// TOAST SYSTEM
+// CATEGORY LABELS (Russian)
+// =====================================================
+
+const CATEGORY_LABELS: Record<string, string> = {
+  Camera: 'Камеры',
+  Lens: 'Объективы',
+  Flash: 'Вспышки',
+  Lighting: 'Свет',
+  Support: 'Штативы',
+  Audio: 'Аудио',
+  Storage: 'Хранение',
+  Drone: 'Дроны',
+  Computer: 'Компьютеры',
+  Bag: 'Сумки',
+  Accessory: 'Аксессуары',
+}
+
+const STATUS_CONFIG = {
+  owned: { label: 'Есть', emoji: '✅', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  planned: { label: 'План', emoji: '📋', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  dream: { label: 'Мечта', emoji: '💭', color: 'bg-violet-100 text-violet-700 border-violet-200' },
+} as const
+
+const MOTIVATIONAL_QUOTES = [
+  'Сниму свадьбу за $XXX =)',
+  'Готов к любому проекту!',
+  'Моя студия всегда со мной',
+  'Снимаю на все, что движется',
+  'Один сетап на миллион',
+]
+
+// =====================================================
+// TOAST
 // =====================================================
 
 interface Toast {
   id: string
-  type: 'achievement' | 'quest' | 'levelup' | 'motivational'
   title: string
   description: string
   icon: string
+  type: 'success' | 'achievement' | 'info'
 }
-
-// =====================================================
-// BUDGET RANGES
-// =====================================================
-
-interface BudgetRange {
-  label: string
-  min: number
-  max: number
-}
-
-const BUDGET_RANGES: BudgetRange[] = [
-  { label: 'До $1,000', min: 0, max: 1000 },
-  { label: '$1,000-3,000', min: 1000, max: 3000 },
-  { label: '$3,000-10,000', min: 3000, max: 10000 },
-  { label: '$10,000+', min: 10000, max: Infinity },
-]
-
-const EXPERIENCE_LEVELS = ['Начинающий', 'Продвинутый', 'Профессионал']
 
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
 
 export default function BoardPage() {
-  const [step, setStep] = useState<'niche' | 'budget' | 'board'>('niche')
+  // --- Flow state ---
+  const [step, setStep] = useState<'niche' | 'board'>('niche')
   const [selectedNiche, setSelectedNiche] = useState<Niche | null>(null)
-  const [selectedBudget, setSelectedBudget] = useState<BudgetRange | null>(null)
-  const [selectedLevel, setSelectedLevel] = useState<string | null>(null)
 
+  // --- Board state ---
   const [gameState, setGameState] = useState(initializeGameState())
   const [userEquipment, setUserEquipment] = useState<UserEquipment[]>([])
   const [totalXP, setTotalXP] = useState(0)
-  const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([])
-  const [completedQuests, setCompletedQuests] = useState<string[]>([])
 
+  // --- Catalog state ---
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'name'>('recommended')
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const [activeBrand, setActiveBrand] = useState<string>('all')
+  const [catalogOpen, setCatalogOpen] = useState(true)
 
-  // Load from localStorage on mount
+  // --- UI state ---
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [dragOverBoard, setDragOverBoard] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
+
+  // --- Load from localStorage ---
   useEffect(() => {
-    const saved = localStorage.getItem('kitwise-board-state')
+    const saved = localStorage.getItem('kitwise-game-state')
     if (saved) {
-      const state = JSON.parse(saved)
-      if (state.selectedNiche) setSelectedNiche(state.selectedNiche)
-      if (state.selectedBudget) setSelectedBudget(state.selectedBudget)
-      if (state.selectedLevel) setSelectedLevel(state.selectedLevel)
-      if (state.step) setStep(state.step)
-      if (state.gameState) setGameState(state.gameState)
-      if (state.userEquipment) setUserEquipment(state.userEquipment)
-      if (state.totalXP) setTotalXP(state.totalXP)
-      if (state.unlockedAchievements) setUnlockedAchievements(state.unlockedAchievements)
-      if (state.completedQuests) setCompletedQuests(state.completedQuests)
+      try {
+        const s = JSON.parse(saved)
+        if (s.selectedNiche) { setSelectedNiche(s.selectedNiche); setStep('board') }
+        if (s.gameState) setGameState(s.gameState)
+        if (s.userEquipment) setUserEquipment(s.userEquipment)
+        if (s.totalXP) setTotalXP(s.totalXP)
+      } catch { /* ignore corrupted state */ }
     }
   }, [])
 
-  // Save to localStorage whenever state changes
+  // --- Save to localStorage ---
   useEffect(() => {
     if (step === 'board' && selectedNiche) {
-      localStorage.setItem('kitwise-board-state', JSON.stringify({
-        step,
-        selectedNiche,
-        selectedBudget,
-        selectedLevel,
-        gameState,
-        userEquipment,
-        totalXP,
-        unlockedAchievements,
-        completedQuests,
+      localStorage.setItem('kitwise-game-state', JSON.stringify({
+        selectedNiche, gameState, userEquipment, totalXP,
       }))
     }
-  }, [step, selectedNiche, selectedBudget, selectedLevel, gameState, userEquipment, totalXP, unlockedAchievements, completedQuests])
+  }, [step, selectedNiche, gameState, userEquipment, totalXP])
 
-  const handleNicheSelect = (niche: Niche) => {
-    setSelectedNiche(niche)
-    setStep('budget')
-  }
+  // --- Derived data ---
+  const equipmentMap = useMemo(() => new Map(mockEquipmentCatalog.map(e => [e.id, e])), [])
 
-  const handleBudgetSelect = (budget: BudgetRange) => {
-    setSelectedBudget(budget)
-  }
+  const allCategories = useMemo(() => {
+    const cats = Array.from(new Set(mockEquipmentCatalog.map(e => e.category)))
+    return ['all', ...cats]
+  }, [])
 
-  const handleLevelSelect = (level: string) => {
-    setSelectedLevel(level)
-    setStep('board')
-  }
+  const allBrands = useMemo(() => {
+    let items = mockEquipmentCatalog
+    if (activeCategory !== 'all') items = items.filter(e => e.category === activeCategory)
+    const brands = Array.from(new Set(items.map(e => e.brand))).sort()
+    return ['all', ...brands]
+  }, [activeCategory])
 
-  // Get recommendations for this niche
-  const nicheRecommendations = useMemo(() => {
-    if (!selectedNiche) return []
-    const reqs = getNicheRequirements(selectedNiche.id)
-    if (!reqs) return []
-
-    const mustHaveEquipment = reqs.requirements.must_have
-      .map(req => mockEquipmentCatalog.find(e => e.id === req.equipment_id))
-      .filter((e): e is EquipmentCatalog => e !== undefined)
-      .slice(0, 6)
-
-    return mustHaveEquipment
-  }, [selectedNiche])
-
-  // Smart catalog filtering
   const filteredEquipment = useMemo(() => {
     let items = mockEquipmentCatalog
-
-    // Category filter
-    if (activeCategory !== 'all') {
-      items = items.filter(e => e.category.toLowerCase() === activeCategory.toLowerCase())
-    }
-
-    // Search filter
+    if (activeCategory !== 'all') items = items.filter(e => e.category === activeCategory)
+    if (activeBrand !== 'all') items = items.filter(e => e.brand === activeBrand)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       items = items.filter(e =>
         e.name.toLowerCase().includes(q) ||
         e.brand.toLowerCase().includes(q) ||
-        e.category.toLowerCase().includes(q) ||
-        (e.subcategory && e.subcategory.toLowerCase().includes(q))
+        e.description.toLowerCase().includes(q)
       )
     }
-
-    // Budget filter
-    if (selectedBudget) {
-      items = items.filter(e => {
-        const minPrice = e.price_min ?? 0
-        const maxPrice = e.price_max ?? Infinity
-        return minPrice <= selectedBudget.max && maxPrice >= selectedBudget.min
-      })
-    }
-
-    // Sort
-    if (sortBy === 'price_asc') {
-      items = [...items].sort((a, b) => (a.price_min ?? 0) - (b.price_min ?? 0))
-    } else if (sortBy === 'price_desc') {
-      items = [...items].sort((a, b) => (b.price_max ?? 0) - (a.price_max ?? 0))
-    } else if (sortBy === 'name') {
-      items = [...items].sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-    }
-
     return items
-  }, [activeCategory, searchQuery, selectedBudget, sortBy])
+  }, [activeCategory, activeBrand, searchQuery])
 
-  // Get all categories from catalog
-  const allCategories = useMemo(() => {
-    return ['all', ...Array.from(new Set(mockEquipmentCatalog.map(e => e.category.toLowerCase())))]
+  // --- Board equipment grouped ---
+  const boardGrouped = useMemo(() => {
+    const groups: Record<string, { eq: UserEquipment; catalog: EquipmentCatalog }[]> = {}
+    userEquipment.forEach(ue => {
+      const cat = ue.category
+      if (!groups[cat]) groups[cat] = []
+      const catalog = equipmentMap.get(ue.equipment_id)
+      if (catalog) groups[cat].push({ eq: ue, catalog })
+    })
+    return groups
+  }, [userEquipment, equipmentMap])
+
+  const setupCompletion = selectedNiche
+    ? calculateSetupCompletion(userEquipment, selectedNiche.id, mockEquipmentCatalog)
+    : 0
+
+  const currentLevel = getLevelForXP(Math.floor(totalXP))
+  const xpProgress = getXPProgress(Math.floor(totalXP))
+
+  const totalPrice = useMemo(() => {
+    return userEquipment.reduce((sum, ue) => {
+      const cat = equipmentMap.get(ue.equipment_id)
+      return sum + (cat?.price_min || 0) * ue.quantity
+    }, 0)
+  }, [userEquipment, equipmentMap])
+
+  // --- Actions ---
+  const showToast = useCallback((t: Omit<Toast, 'id'>) => {
+    const id = `t-${Date.now()}-${Math.random()}`
+    setToasts(prev => [...prev, { ...t, id }])
+    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3000)
   }, [])
 
-  const handleAddEquipment = useCallback((equipment: EquipmentCatalog) => {
+  const addEquipment = useCallback((equipment: EquipmentCatalog) => {
     if (!selectedNiche) return
+    if (userEquipment.some(ue => ue.equipment_id === equipment.id)) return
 
-    const newEquipment: UserEquipment = {
+    const newEq: UserEquipment = {
       id: `eq-${Date.now()}`,
       user_id: 'current',
       equipment_id: equipment.id,
@@ -191,97 +179,118 @@ export default function BoardPage() {
       notes: null,
     }
 
-    const { newState, pointsEarned, events } = processAction(
-      gameState,
-      'add',
-      equipment.id,
-      selectedNiche.id,
-      [...userEquipment, newEquipment],
-      mockEquipmentCatalog,
-      0,
-      0
+    const { newState, pointsEarned } = processAction(
+      gameState, 'add', equipment.id, selectedNiche.id,
+      [...userEquipment, newEq], mockEquipmentCatalog, 0, 0
     )
 
     setGameState(newState)
-    setUserEquipment([...userEquipment, newEquipment])
-    setTotalXP(prev => prev + (pointsEarned * 0.5)) // XP conversion
+    setUserEquipment(prev => [...prev, newEq])
+    setTotalXP(prev => prev + pointsEarned * 0.5)
 
-    // Check achievements
-    const newAchievements = ACHIEVEMENTS.filter(ach =>
-      checkAchievement(ach, {
-        totalItems: userEquipment.length + 1,
-        totalScore: newState.score,
-        maxCombo: newState.maxCombo,
-        maxStreak: newState.streak,
-        categoriesUsed: Array.from(new Set([...userEquipment, newEquipment].map(e => e.category))),
-        brandsUsed: Array.from(new Set([...userEquipment, newEquipment].map(e => mockEquipmentCatalog.find(c => c.id === e.equipment_id)?.brand || '').filter(b => b))),
-        totalSpent: 0,
-        setupCompletion: calculateSetupCompletion([...userEquipment, newEquipment], selectedNiche.id, mockEquipmentCatalog),
-        questsCompleted: completedQuests.length,
-        sessionsCount: 1,
-        unlockedAchievements,
-      })
-    )
+    showToast({
+      type: 'success',
+      title: `+ ${equipment.name}`,
+      description: `${equipment.brand} · +${Math.floor(pointsEarned * 0.5)} XP`,
+      icon: categoryIcons[equipment.category] || '📦',
+    })
+  }, [selectedNiche, gameState, userEquipment, showToast])
 
-    const newUnlockedIds = newAchievements.map(a => a.id).filter(id => !unlockedAchievements.includes(id))
-    if (newUnlockedIds.length > 0) {
-      setUnlockedAchievements([...unlockedAchievements, ...newUnlockedIds])
-      newUnlockedIds.forEach(id => {
-        const ach = ACHIEVEMENTS.find(a => a.id === id)
-        if (ach) {
-          showToast({
-            type: 'achievement',
-            title: `Ачивка: ${ach.title}`,
-            description: ach.description,
-            icon: ach.icon,
-          })
-        }
-      })
-    }
-
-    // Show motivational message 30% of the time
-    if (Math.random() < 0.3) {
-      const messages = [
-        { title: 'Отлично!', description: 'Продолжай в том же духе' },
-        { title: 'Супер!', description: 'Твой сетап становится мощнее' },
-        { title: 'Вперед!', description: 'Ты на правильном пути' },
-      ]
-      const msg = messages[Math.floor(Math.random() * messages.length)]
-      showToast({
-        type: 'motivational',
-        title: msg.title,
-        description: msg.description,
-        icon: '💪',
-      })
-    }
-  }, [selectedNiche, gameState, userEquipment, mockEquipmentCatalog, unlockedAchievements, completedQuests])
-
-  const handleRemoveEquipment = useCallback((id: string) => {
+  const removeEquipment = useCallback((id: string) => {
     setUserEquipment(prev => prev.filter(e => e.id !== id))
   }, [])
 
-  const handleStatusChange = useCallback((id: string, status: 'owned' | 'planned' | 'dream') => {
-    setUserEquipment(prev => prev.map(e => e.id === id ? { ...e, status } : e))
+  const cycleStatus = useCallback((id: string) => {
+    const order: ('owned' | 'planned' | 'dream')[] = ['owned', 'planned', 'dream']
+    setUserEquipment(prev => prev.map(e => {
+      if (e.id !== id) return e
+      const idx = order.indexOf(e.status)
+      return { ...e, status: order[(idx + 1) % 3] }
+    }))
   }, [])
 
-  const handleQuantityChange = useCallback((id: string, delta: number) => {
-    setUserEquipment(prev => prev.map(e =>
-      e.id === id ? { ...e, quantity: Math.max(1, e.quantity + delta) } : e
-    ))
+  const resetBoard = useCallback(() => {
+    localStorage.removeItem('kitwise-game-state')
+    setStep('niche')
+    setSelectedNiche(null)
+    setGameState(initializeGameState())
+    setUserEquipment([])
+    setTotalXP(0)
   }, [])
 
-  const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    const id = `toast-${Date.now()}`
-    setToasts(prev => [...prev, { ...toast, id }])
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, 3000)
+  // --- Drag & Drop ---
+  const handleDragStart = useCallback((e: React.DragEvent, eq: EquipmentCatalog) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(eq))
+    e.dataTransfer.effectAllowed = 'copy'
   }, [])
 
-  const setupCompletion = selectedNiche ? calculateSetupCompletion(userEquipment, selectedNiche.id, mockEquipmentCatalog) : 0
-  const currentLevel = getLevelForXP(Math.floor(totalXP))
-  const xpProgress = getXPProgress(Math.floor(totalXP))
-  const equipmentById = useMemo(() => new Map(mockEquipmentCatalog.map(e => [e.id, e])), [])
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    setDragOverBoard(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => setDragOverBoard(false), [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverBoard(false)
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'))
+      if (data && data.id) addEquipment(data as EquipmentCatalog)
+    } catch { /* ignore bad data */ }
+  }, [addEquipment])
+
+  // --- Export card as image ---
+  const handleExport = useCallback(async () => {
+    if (!exportRef.current) return
+    try {
+      const { default: html2canvas } = await import('html2canvas')
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2, backgroundColor: null, useCORS: true,
+      })
+      const link = document.createElement('a')
+      link.href = canvas.toDataURL('image/png')
+      link.download = `kitwise-setup-${Date.now()}.png`
+      link.click()
+    } catch {
+      // Fallback: canvas manual draw
+      const canvas = document.createElement('canvas')
+      canvas.width = 1200
+      canvas.height = 800
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Gradient background
+      const grad = ctx.createLinearGradient(0, 0, 1200, 800)
+      grad.addColorStop(0, '#4f46e5')
+      grad.addColorStop(1, '#7c3aed')
+      ctx.fillStyle = grad
+      ctx.roundRect(0, 0, 1200, 800, 24)
+      ctx.fill()
+
+      ctx.fillStyle = '#fff'
+      ctx.font = 'bold 48px system-ui'
+      ctx.textAlign = 'center'
+      ctx.fillText('KitWise', 600, 80)
+      ctx.font = '28px system-ui'
+      ctx.fillText(selectedNiche?.name || '', 600, 130)
+      ctx.font = 'bold 64px system-ui'
+      ctx.fillText(`$${totalPrice.toLocaleString()}`, 600, 250)
+      ctx.font = '24px system-ui'
+      ctx.fillText(`${userEquipment.length} единиц оборудования`, 600, 300)
+
+      const quote = MOTIVATIONAL_QUOTES[0].replace('$XXX', `$${totalPrice.toLocaleString()}`)
+      ctx.font = 'italic 22px system-ui'
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'
+      ctx.fillText(`"${quote}"`, 600, 750)
+
+      const link = document.createElement('a')
+      link.href = canvas.toDataURL('image/png')
+      link.download = `kitwise-setup-${Date.now()}.png`
+      link.click()
+    }
+  }, [selectedNiche, totalPrice, userEquipment.length])
 
   // =====================================================
   // STEP 1: NICHE SELECTION
@@ -289,26 +298,24 @@ export default function BoardPage() {
 
   if (step === 'niche') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-6xl px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50">
+        <div className="mx-auto max-w-5xl px-4 py-16">
           <div className="mb-12 text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Выбери свою нишу</h1>
-            <p className="text-lg text-gray-600">Каждая ниша имеет собственный набор требований и рекомендаций</p>
+            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-3">
+              Собери свой сетап
+            </h1>
+            <p className="text-xl text-gray-500">Выбери нишу — мы покажем, что тебе нужно</p>
           </div>
 
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {mockNiches.map(niche => (
               <button
                 key={niche.id}
-                onClick={() => handleNicheSelect(niche)}
-                className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all hover:shadow-md hover:border-indigo-200 text-left"
+                onClick={() => { setSelectedNiche(niche); setStep('board') }}
+                className="group rounded-2xl bg-white/80 backdrop-blur p-5 shadow-sm border border-gray-100 transition-all hover:shadow-lg hover:border-indigo-300 hover:scale-[1.03] text-center"
               >
-                <div className="mb-4 text-4xl">{niche.icon}</div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{niche.name}</h3>
-                <p className="text-sm text-gray-600 mb-4">{niche.description}</p>
-                <div className="flex items-center gap-2 text-indigo-600 font-medium text-sm">
-                  Выбрать <span>→</span>
-                </div>
+                <div className="text-4xl mb-3">{niche.icon}</div>
+                <h3 className="font-semibold text-gray-900 text-sm">{niche.name}</h3>
               </button>
             ))}
           </div>
@@ -318,524 +325,340 @@ export default function BoardPage() {
   }
 
   // =====================================================
-  // STEP 2: BUDGET & LEVEL SELECTION
+  // STEP 2: MAIN BOARD
   // =====================================================
 
-  if (step === 'budget') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-3xl px-4 py-12">
-          <button
-            onClick={() => setStep('niche')}
-            className="mb-8 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
-          >
-            ← Назад к нишам
-          </button>
-
-          <div className="mb-12">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{selectedNiche?.name}</h1>
-            <p className="text-gray-600">{selectedNiche?.description}</p>
-          </div>
-
-          {/* Budget Selection */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Твой бюджет</h2>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              {BUDGET_RANGES.map(budget => (
-                <button
-                  key={budget.label}
-                  onClick={() => handleBudgetSelect(budget)}
-                  className={`rounded-xl p-4 font-medium transition-all border-2 text-center ${
-                    selectedBudget?.label === budget.label
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-900 border-gray-100 hover:border-indigo-200'
-                  }`}
-                >
-                  {budget.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Experience Level Selection */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Твой уровень опыта</h2>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-              {EXPERIENCE_LEVELS.map(level => (
-                <button
-                  key={level}
-                  onClick={() => handleLevelSelect(level)}
-                  className={`rounded-xl p-4 font-medium transition-all border-2 text-center ${
-                    selectedLevel === level
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-900 border-gray-100 hover:border-indigo-200'
-                  }`}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={() => selectedBudget && selectedLevel && setStep('board')}
-            disabled={!selectedBudget || !selectedLevel}
-            className="w-full rounded-xl bg-indigo-600 text-white py-3 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hover:bg-indigo-700"
-          >
-            Начать собирать сетап
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // =====================================================
-  // STEP 3: MAIN BOARD
-  // =====================================================
+  const funQuote = MOTIVATIONAL_QUOTES[0].replace('$XXX', `$${totalPrice.toLocaleString()}`)
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Toast notifications */}
-      <div className="fixed bottom-6 right-6 z-50 space-y-3">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className={`rounded-xl p-4 shadow-lg border text-white flex gap-3 items-start max-w-sm ${
-              toast.type === 'achievement'
-                ? 'bg-amber-500 border-amber-600'
-                : toast.type === 'quest'
-                  ? 'bg-emerald-500 border-emerald-600'
-                  : toast.type === 'levelup'
-                    ? 'bg-violet-500 border-violet-600'
-                    : 'bg-blue-500 border-blue-600'
-            }`}
-          >
-            <span className="text-2xl">{toast.icon}</span>
+      {/* TOAST NOTIFICATIONS */}
+      <div className="fixed bottom-6 right-6 z-50 space-y-2">
+        {toasts.map(t => (
+          <div key={t.id} className="flex items-center gap-3 bg-white rounded-xl shadow-xl border border-gray-100 px-4 py-3 max-w-xs animate-slide-in">
+            <span className="text-2xl">{t.icon}</span>
             <div>
-              <div className="font-semibold">{toast.title}</div>
-              <div className="text-sm opacity-90">{toast.description}</div>
+              <p className="font-semibold text-gray-900 text-sm">{t.title}</p>
+              <p className="text-xs text-gray-500">{t.description}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
-          {/* LEFT COLUMN: Catalog */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Recommendations Section */}
-            {nicheRecommendations.length > 0 && (
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Lightbulb className="w-5 h-5 text-indigo-600" />
-                  Рекомендовано для {selectedNiche?.name}
+      {/* TOP BAR — Game Stats */}
+      <div className="sticky top-16 z-30 bg-white/90 backdrop-blur border-b border-gray-100">
+        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-6 flex-wrap">
+          <button onClick={resetBoard} className="text-sm text-gray-400 hover:text-red-500 transition-colors">
+            ← Сменить нишу
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{selectedNiche?.icon}</span>
+            <span className="font-semibold text-gray-900">{selectedNiche?.name}</span>
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-bold text-gray-900">{formatScore(gameState.score)}</span>
+            <span className="text-xs text-gray-400">очков</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Star className="w-4 h-4 text-violet-500" />
+            <span className="text-sm font-bold text-gray-900">{Math.floor(totalXP)}</span>
+            <span className="text-xs text-gray-400">XP</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Trophy className="w-4 h-4 text-indigo-500" />
+            <span className="text-sm font-bold text-gray-900">{currentLevel.title}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500" style={{ width: `${xpProgress.percent}%` }} />
+            </div>
+            <span className="text-xs text-gray-400">{xpProgress.current}/{xpProgress.needed}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-indigo-600">{Math.round(setupCompletion)}%</span>
+            <span className="text-xs text-gray-400">сетап</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+
+          {/* ==========================================
+              LEFT: EQUIPMENT CATALOG
+              ========================================== */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+              {/* Catalog header */}
+              <button
+                onClick={() => setCatalogOpen(!catalogOpen)}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <h2 className="text-lg font-bold text-gray-900">
+                  Каталог <span className="text-gray-400 font-normal text-sm">({filteredEquipment.length})</span>
                 </h2>
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                  {nicheRecommendations.map(eq => {
-                    const isAdded = userEquipment.some(ue => ue.equipment_id === eq.id)
-                    return (
-                      <div
-                        key={eq.id}
-                        className={`rounded-xl p-4 border-2 transition-all ${
-                          isAdded
-                            ? 'bg-gray-50 border-emerald-200'
-                            : 'bg-white border-indigo-200 hover:shadow-md'
+                {catalogOpen ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+              </button>
+
+              {catalogOpen && (
+                <div className="px-5 pb-5 space-y-3">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Поиск по названию или бренду..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
+                    />
+                  </div>
+
+                  {/* Category tabs */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                    {allCategories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => { setActiveCategory(cat); setActiveBrand('all') }}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                          activeCategory === cat
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="text-sm text-indigo-600 font-medium mb-1">⭐ Необходимо</div>
-                            <h4 className="font-semibold text-gray-900 text-sm">{eq.name}</h4>
-                            <p className="text-xs text-gray-600">{eq.brand}</p>
-                            {eq.price_min && (
-                              <p className="text-xs text-gray-500 mt-2">
-                                ${eq.price_min} - ${eq.price_max || eq.price_min}
-                              </p>
-                            )}
+                        {cat === 'all' ? '🏷️ Все' : `${categoryIcons[cat] || '📦'} ${CATEGORY_LABELS[cat] || cat}`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Brand pills */}
+                  {activeCategory !== 'all' && allBrands.length > 2 && (
+                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                      {allBrands.map(brand => (
+                        <button
+                          key={brand}
+                          onClick={() => setActiveBrand(brand)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                            activeBrand === brand
+                              ? 'bg-violet-600 text-white border-violet-600'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
+                          }`}
+                        >
+                          {brand === 'all' ? 'Все бренды' : brand}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Equipment list */}
+                  <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1">
+                    {filteredEquipment.map(eq => {
+                      const isAdded = userEquipment.some(ue => ue.equipment_id === eq.id)
+                      return (
+                        <div
+                          key={eq.id}
+                          draggable={!isAdded}
+                          onDragStart={e => handleDragStart(e, eq)}
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all group ${
+                            isAdded
+                              ? 'bg-gray-50 border-gray-100 opacity-50'
+                              : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-sm cursor-grab active:cursor-grabbing'
+                          }`}
+                        >
+                          {!isAdded && (
+                            <GripVertical className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 flex-shrink-0" />
+                          )}
+                          <span className="text-lg flex-shrink-0">{categoryIcons[eq.category] || '📦'}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 text-sm truncate">{eq.name}</p>
+                            <p className="text-xs text-gray-500">{eq.brand} {eq.price_min ? `· $${eq.price_min.toLocaleString()}` : ''}</p>
                           </div>
                           <button
-                            onClick={() => !isAdded && handleAddEquipment(eq)}
+                            onClick={() => addEquipment(eq)}
                             disabled={isAdded}
-                            className={`rounded-lg p-2 transition-all font-medium text-sm ${
+                            className={`p-1.5 rounded-lg transition-all flex-shrink-0 ${
                               isAdded
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                ? 'text-emerald-500'
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
                             }`}
                           >
                             {isAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           </button>
                         </div>
+                      )
+                    })}
+                    {filteredEquipment.length === 0 && (
+                      <p className="text-center text-gray-400 py-8 text-sm">Ничего не найдено</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ==========================================
+              RIGHT: MY BOARD + EXPORT
+              ========================================== */}
+          <div className="lg:col-span-7 space-y-6">
+
+            {/* MY BOARD — drop zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`rounded-2xl bg-white shadow-sm border-2 transition-all min-h-[200px] ${
+                dragOverBoard
+                  ? 'border-indigo-400 bg-indigo-50/50 shadow-lg'
+                  : 'border-gray-100'
+              }`}
+            >
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-900">
+                  Мой сетап <span className="text-gray-400 font-normal text-sm">({userEquipment.length})</span>
+                </h2>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-indigo-600">
+                    ${totalPrice.toLocaleString()}
+                  </span>
+                  {userEquipment.length > 0 && (
+                    <button
+                      onClick={() => setShowExport(!showExport)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-medium hover:opacity-90 transition-opacity shadow-sm"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Карточка
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {userEquipment.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-gray-400 text-sm mb-1">Перетащи оборудование сюда</p>
+                  <p className="text-gray-300 text-xs">или нажми + в каталоге</p>
+                </div>
+              ) : (
+                <div className="p-5 space-y-4">
+                  {Object.entries(boardGrouped).map(([category, items]) => (
+                    <div key={category}>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <span>{categoryIcons[category] || '📦'}</span>
+                        {CATEGORY_LABELS[category] || category}
+                        <span className="text-gray-300">({items.length})</span>
+                      </h3>
+                      <div className="space-y-1.5">
+                        {items.map(({ eq, catalog }) => (
+                          <div
+                            key={eq.id}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 group hover:border-gray-200 transition-all"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 text-sm truncate">{catalog.name}</p>
+                              <p className="text-xs text-gray-500">{catalog.brand} {catalog.price_min ? `· $${catalog.price_min.toLocaleString()}` : ''}</p>
+                            </div>
+                            <button
+                              onClick={() => cycleStatus(eq.id)}
+                              className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${STATUS_CONFIG[eq.status].color}`}
+                            >
+                              {STATUS_CONFIG[eq.status].emoji} {STATUS_CONFIG[eq.status].label}
+                            </button>
+                            <button
+                              onClick={() => removeEquipment(eq.id)}
+                              className="p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ==========================================
+                EXPORT CARD FOR SOCIAL MEDIA
+                ========================================== */}
+            {showExport && userEquipment.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-900">Карточка для репоста</h2>
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    Скачать PNG
+                  </button>
+                </div>
+
+                {/* THE CARD */}
+                <div
+                  ref={exportRef}
+                  className="rounded-3xl overflow-hidden shadow-2xl"
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%)',
+                    padding: '2.5rem',
+                  }}
+                >
+                  {/* Header */}
+                  <div className="text-center mb-8">
+                    <p className="text-white/60 text-sm font-medium tracking-widest uppercase mb-2">KitWise</p>
+                    <h3 className="text-3xl font-extrabold text-white mb-1">
+                      {selectedNiche?.icon} {selectedNiche?.name}
+                    </h3>
+                    <div className="flex items-center justify-center gap-4 mt-3">
+                      <span className="px-4 py-1.5 rounded-full bg-white/20 text-white text-sm font-bold">
+                        💰 ${totalPrice.toLocaleString()}
+                      </span>
+                      <span className="px-4 py-1.5 rounded-full bg-white/20 text-white text-sm font-bold">
+                        📦 {userEquipment.length} единиц
+                      </span>
+                      <span className="px-4 py-1.5 rounded-full bg-white/20 text-white text-sm font-bold">
+                        ⚡ {Math.round(setupCompletion)}% сетап
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Equipment by category */}
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    {Object.entries(boardGrouped).map(([category, items]) => (
+                      <div key={category} className="rounded-2xl bg-white/10 backdrop-blur p-4">
+                        <h4 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                          <span>{categoryIcons[category]}</span>
+                          {CATEGORY_LABELS[category] || category}
+                        </h4>
+                        <div className="space-y-1.5">
+                          {items.map(({ eq, catalog }) => (
+                            <div key={eq.id} className="flex items-center gap-2">
+                              <span className="text-xs">{STATUS_CONFIG[eq.status].emoji}</span>
+                              <span className="text-white text-sm font-medium truncate">{catalog.name}</span>
+                              <span className="text-white/50 text-xs ml-auto flex-shrink-0">{catalog.brand}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Footer with fun quote */}
+                  <div className="mt-8 text-center">
+                    <p className="text-white/70 text-sm italic mb-4">"{funQuote}"</p>
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="text-white/40 text-xs">✦</span>
+                      <span className="text-white/60 text-xs tracking-widest uppercase">kitwise-app.vercel.app</span>
+                      <span className="text-white/40 text-xs">✦</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Search & Filters */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Найди оборудование..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                />
-              </div>
-
-              {/* Category Pills */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {allCategories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
-                      activeCategory === cat
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {cat === 'all' ? 'Все' : cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sort Dropdown */}
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-400"
-              >
-                <option value="recommended">По рекомендации</option>
-                <option value="price_asc">По цене ↑</option>
-                <option value="price_desc">По цене ↓</option>
-                <option value="name">По названию</option>
-              </select>
-            </div>
-
-            {/* Equipment List */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Каталог оборудования ({filteredEquipment.length})</h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredEquipment.map(eq => {
-                  const isAdded = userEquipment.some(ue => ue.equipment_id === eq.id)
-                  const tier = getEquipmentTierInNiche(eq.id, selectedNiche?.id || '')
-                  return (
-                    <div
-                      key={eq.id}
-                      draggable
-                      onDragStart={e => {
-                        e.dataTransfer.effectAllowed = 'copy'
-                        e.dataTransfer.setData('equipment', JSON.stringify(eq))
-                      }}
-                      className={`flex items-center gap-4 p-3 rounded-lg border transition-all cursor-move ${
-                        isAdded
-                          ? 'bg-gray-50 border-gray-200 opacity-50'
-                          : 'bg-white border-gray-100 hover:border-indigo-200 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <span className="text-lg">{categoryIcons[eq.category] || '📦'}</span>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm">{eq.name}</h4>
-                        <p className="text-xs text-gray-600">{eq.brand}</p>
-                        {eq.price_min && (
-                          <p className="text-xs text-gray-500">${eq.price_min} - ${eq.price_max || eq.price_min}</p>
-                        )}
-                      </div>
-                      {tier !== 'not_recommended' && (
-                        <span className="text-xs px-2 py-1 rounded-md bg-indigo-100 text-indigo-700">
-                          ⭐ {tier === 'must_have' ? 'Необходимо' : tier === 'pro_level' ? 'Pro' : 'Оптимизация'}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => !isAdded && handleAddEquipment(eq)}
-                        disabled={isAdded}
-                        className={`p-2 rounded-lg transition-all ${
-                          isAdded
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        }`}
-                      >
-                        {isAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Game Panel */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Game HUD */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{currentLevel.icon}</span>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-600">УРОВЕНЬ</p>
-                  <h3 className="font-bold text-gray-900">{currentLevel.title}</h3>
-                </div>
-              </div>
-
-              {/* XP Bar */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-xs text-gray-600">XP</p>
-                  <p className="text-xs font-semibold text-gray-900">
-                    {xpProgress.current} / {xpProgress.needed}
-                  </p>
-                </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all"
-                    style={{ width: `${xpProgress.percent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Score */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-600 mb-1">ОЧКИ</p>
-                <p className="text-3xl font-bold text-gray-900">{formatScore(gameState.score)}</p>
-              </div>
-
-              {/* Combo */}
-              {gameState.combo > 1 && (
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="inline-block px-3 py-2 rounded-lg bg-amber-100 text-amber-700 font-bold text-lg">
-                    {gameState.multiplier.toFixed(1)}x 🔥
-                  </div>
-                </div>
-              )}
-
-              {/* Setup Completion */}
-              <div className="pt-4 border-t border-gray-100">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-xs text-gray-600">СЕТАП</p>
-                  <p className="text-sm font-bold text-gray-900">{setupCompletion}%</p>
-                </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all"
-                    style={{ width: `${setupCompletion}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* My Board */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <LayoutGrid className="w-5 h-5" />
-                Мой сетап ({userEquipment.length})
-              </h3>
-
-              {userEquipment.length === 0 ? (
-                <div className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center">
-                  <p className="text-sm text-gray-600">Перетащи оборудование сюда или нажми +</p>
-                </div>
-              ) : (
-                <div
-                  className="space-y-3 max-h-96 overflow-y-auto p-4 rounded-lg bg-gray-50 border-2 border-dashed border-gray-200"
-                  onDragOver={e => {
-                    e.preventDefault()
-                    e.currentTarget.classList.add('bg-blue-50', 'border-blue-300')
-                  }}
-                  onDragLeave={e => {
-                    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300')
-                  }}
-                  onDrop={e => {
-                    e.preventDefault()
-                    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300')
-                    const data = e.dataTransfer.getData('equipment')
-                    if (data) {
-                      const eq = JSON.parse(data)
-                      handleAddEquipment(eq)
-                    }
-                  }}
-                >
-                  {userEquipment.map(ue => {
-                    const eq = equipmentById.get(ue.equipment_id)
-                    return (
-                      <div key={ue.id} className="bg-white rounded-lg p-3 border border-gray-200">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 text-sm">{eq?.name}</h4>
-                            <p className="text-xs text-gray-600">{eq?.brand}</p>
-                          </div>
-                          <button
-                            onClick={() => handleRemoveEquipment(ue.id)}
-                            className="p-1.5 hover:bg-red-100 rounded-lg text-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {/* Status buttons */}
-                        <div className="flex gap-1.5 mb-3">
-                          {(['owned', 'planned', 'dream'] as const).map(status => (
-                            <button
-                              key={status}
-                              onClick={() => handleStatusChange(ue.id, status)}
-                              className={`flex-1 text-xs py-1.5 rounded font-medium transition-all ${
-                                ue.status === status
-                                  ? status === 'owned'
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : status === 'planned'
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : 'bg-rose-100 text-rose-700'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              }`}
-                            >
-                              {status === 'owned' ? '✓ Есть' : status === 'planned' ? '📋 План' : '❤️ Хочу'}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Quantity */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">Кол-во:</span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleQuantityChange(ue.id, -1)}
-                              className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-                            >
-                              −
-                            </button>
-                            <span className="text-sm font-semibold w-6 text-center">{ue.quantity}</span>
-                            <button
-                              onClick={() => handleQuantityChange(ue.id, 1)}
-                              className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Quest Tracker */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Clipboard className="w-5 h-5" />
-                Активные квесты
-              </h3>
-
-              <div className="space-y-3">
-                {QUESTS.slice(0, 4).map(quest => {
-                  const isCompleted = checkQuestCompletion(quest, {
-                    equipmentCount: userEquipment.length,
-                    categoriesUsed: Array.from(new Set(userEquipment.map(e => e.category))),
-                    totalScore: gameState.score,
-                    comboMax: gameState.maxCombo,
-                    nicheId: selectedNiche?.id || '',
-                    equipmentByStatus: {
-                      owned: userEquipment.filter(e => e.status === 'owned').length,
-                      planned: userEquipment.filter(e => e.status === 'planned').length,
-                      dream: userEquipment.filter(e => e.status === 'dream').length,
-                    },
-                    equipmentByCategory: Object.fromEntries(
-                      Array.from(new Set(userEquipment.map(e => e.category))).map(cat => [
-                        cat,
-                        userEquipment.filter(e => e.category === cat).length,
-                      ])
-                    ),
-                    hasCamera: userEquipment.some(e => e.category === 'Camera'),
-                    hasLens: userEquipment.some(e => e.category === 'Lens'),
-                    hasLighting: userEquipment.some(e => e.category === 'Lighting'),
-                    hasAudio: userEquipment.some(e => e.category === 'Audio'),
-                    completedQuests,
-                  })
-                  const progress = getQuestProgress(quest, {
-                    equipmentCount: userEquipment.length,
-                    categoriesUsed: Array.from(new Set(userEquipment.map(e => e.category))),
-                    totalScore: gameState.score,
-                    comboMax: gameState.maxCombo,
-                    nicheId: selectedNiche?.id || '',
-                    equipmentByStatus: {
-                      owned: userEquipment.filter(e => e.status === 'owned').length,
-                      planned: userEquipment.filter(e => e.status === 'planned').length,
-                      dream: userEquipment.filter(e => e.status === 'dream').length,
-                    },
-                    equipmentByCategory: Object.fromEntries(
-                      Array.from(new Set(userEquipment.map(e => e.category))).map(cat => [
-                        cat,
-                        userEquipment.filter(e => e.category === cat).length,
-                      ])
-                    ),
-                    hasCamera: userEquipment.some(e => e.category === 'Camera'),
-                    hasLens: userEquipment.some(e => e.category === 'Lens'),
-                    hasLighting: userEquipment.some(e => e.category === 'Lighting'),
-                    hasAudio: userEquipment.some(e => e.category === 'Audio'),
-                    completedQuests,
-                  })
-
-                  return (
-                    <div
-                      key={quest.id}
-                      className={`rounded-lg p-3 transition-all ${
-                        isCompleted ? 'bg-emerald-50 border border-emerald-200' : 'bg-gray-50 border border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="text-lg">{quest.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`text-sm font-semibold ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
-                            {quest.title}
-                          </h4>
-                          <p className="text-xs text-gray-600">{quest.description}</p>
-                        </div>
-                        {isCompleted && <Check className="w-5 h-5 text-emerald-600" />}
-                      </div>
-                      {!isCompleted && (
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-indigo-500 transition-all"
-                              style={{ width: `${Math.min((progress.current / progress.target) * 100, 100)}%` }}
-                            />
-                          </div>
-                          <span className="font-semibold">{progress.current}/{progress.target}</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Reset Button */}
-            <button
-              onClick={() => {
-                if (confirm('Хочешь сменить нишу?')) {
-                  setStep('niche')
-                  setSelectedNiche(null)
-                  setSelectedBudget(null)
-                  setSelectedLevel(null)
-                  setUserEquipment([])
-                  setGameState(initializeGameState())
-                }
-              }}
-              className="w-full rounded-lg border-2 border-gray-200 py-2 text-center font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all text-sm"
-            >
-              Сменить нишу
-            </button>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
     </div>
   )
 }
