@@ -15,6 +15,264 @@ import {
 } from '@/lib/gameEngine'
 
 // =====================================================
+// LEVEL SYSTEM
+// =====================================================
+const LEVELS = [
+  { id: 1, title: 'Новичок', icon: '📷', minXP: 0, maxXP: 100, color: 'gray' },
+  { id: 2, title: 'Любитель', icon: '📸', minXP: 100, maxXP: 300, color: 'emerald' },
+  { id: 3, title: 'Энтузиаст', icon: '🎯', minXP: 300, maxXP: 700, color: 'blue' },
+  { id: 4, title: 'Профессионал', icon: '⭐', minXP: 700, maxXP: 1500, color: 'violet' },
+  { id: 5, title: 'Мастер', icon: '👑', minXP: 1500, maxXP: 99999, color: 'amber' },
+]
+
+const getLevelForXP = (xp: number): (typeof LEVELS)[0] => {
+  return LEVELS.find(l => xp >= l.minXP && xp < l.maxXP) || LEVELS[LEVELS.length - 1]
+}
+
+const getXPProgress = (xp: number): { current: number; max: number; percent: number } => {
+  const level = getLevelForXP(xp)
+  const current = xp - level.minXP
+  const max = level.maxXP - level.minXP
+  return { current, max, percent: (current / max) * 100 }
+}
+
+// =====================================================
+// QUESTS SYSTEM
+// =====================================================
+const QUESTS = [
+  {
+    id: 'q1',
+    title: 'Первое оборудование',
+    description: 'Добавь первый предмет в борд',
+    icon: '📦',
+    check: (equipment: UserEquipment[], niche: string) => equipment.length >= 1,
+    xp: 10,
+    completed: false,
+  },
+  {
+    id: 'q2',
+    title: 'Основы собраны',
+    description: 'Добавь 5 предметов оборудования',
+    icon: '🏗️',
+    check: (equipment: UserEquipment[], niche: string) => equipment.length >= 5,
+    xp: 25,
+    completed: false,
+  },
+  {
+    id: 'q3',
+    title: 'Полный комплект',
+    description: 'Добавь 10 предметов оборудования',
+    icon: '✅',
+    check: (equipment: UserEquipment[], niche: string) => equipment.length >= 10,
+    xp: 50,
+    completed: false,
+  },
+  {
+    id: 'q4',
+    title: 'Серьезный сетап',
+    description: 'Достигни 100 дол обслуживания оборудования',
+    icon: '💰',
+    check: (equipment: UserEquipment[], niche: string) => {
+      const total = equipment.reduce((sum, e) => {
+        const eq = mockEquipmentCatalog.find(x => x.id === e.equipment_id)
+        const avg = eq ? ((eq.price_min || 0) + (eq.price_max || 0)) / 2 : 0
+        return sum + avg * e.quantity
+      }, 0)
+      return total >= 100
+    },
+    xp: 30,
+    completed: false,
+  },
+  {
+    id: 'q5',
+    title: 'Стратег планирования',
+    description: 'Отметь хотя бы 3 предмета как "Планирую"',
+    icon: '📋',
+    check: (equipment: UserEquipment[], niche: string) => equipment.filter(e => e.status === 'planned').length >= 3,
+    xp: 20,
+    completed: false,
+  },
+  {
+    id: 'q6',
+    title: 'Мечтатель',
+    description: 'Добавь хотя бы 2 предмета в список "Хочу"',
+    icon: '❤️',
+    check: (equipment: UserEquipment[], niche: string) => equipment.filter(e => e.status === 'dream').length >= 2,
+    xp: 15,
+    completed: false,
+  },
+  {
+    id: 'q7',
+    title: 'Готовность на 50%',
+    description: 'Собери 50% необходимого оборудования для ниши',
+    icon: '📊',
+    check: (equipment: UserEquipment[], niche: string) => {
+      const completion = calculateSetupCompletion(equipment, niche, mockEquipmentCatalog)
+      return completion >= 50
+    },
+    xp: 40,
+    completed: false,
+  },
+  {
+    id: 'q8',
+    title: 'Комбинатор',
+    description: 'Достигни combo x5 при добавлении оборудования',
+    icon: '⚡',
+    check: (equipment: UserEquipment[], niche: string) => false, // Checked via game engine
+    xp: 35,
+    completed: false,
+  },
+]
+
+// =====================================================
+// ACHIEVEMENTS SYSTEM
+// =====================================================
+const ACHIEVEMENTS = [
+  {
+    id: 'a1',
+    title: 'Первый шаг',
+    description: 'Добавь первый предмет',
+    icon: '👶',
+    rarity: 'common',
+    check: (equipment: UserEquipment[], score: number, combo: number) => equipment.length >= 1,
+  },
+  {
+    id: 'a2',
+    title: 'Коллекционер',
+    description: 'Собери 15 предметов',
+    icon: '🎯',
+    rarity: 'rare',
+    check: (equipment: UserEquipment[], score: number, combo: number) => equipment.length >= 15,
+  },
+  {
+    id: 'a3',
+    title: 'Щедрый бюджет',
+    description: 'Комплект стоит более 500 долларов',
+    icon: '💸',
+    rarity: 'rare',
+    check: (equipment: UserEquipment[], score: number, combo: number) => {
+      const total = equipment.reduce((sum, e) => {
+        const eq = mockEquipmentCatalog.find(x => x.id === e.equipment_id)
+        const avg = eq ? ((eq.price_min || 0) + (eq.price_max || 0)) / 2 : 0
+        return sum + avg * e.quantity
+      }, 0)
+      return total >= 500
+    },
+  },
+  {
+    id: 'a4',
+    title: 'Серьезный сбор',
+    description: 'Достигни 250 очков',
+    icon: '⭐',
+    rarity: 'epic',
+    check: (equipment: UserEquipment[], score: number, combo: number) => score >= 250,
+  },
+  {
+    id: 'a5',
+    title: 'Комбо мастер',
+    description: 'Достигни combo x10',
+    icon: '🔥',
+    rarity: 'epic',
+    check: (equipment: UserEquipment[], score: number, combo: number) => combo >= 10,
+  },
+  {
+    id: 'a6',
+    title: 'Сбалансирован',
+    description: 'Собери оборудование всех 3 категорий',
+    icon: '⚖️',
+    rarity: 'rare',
+    check: (equipment: UserEquipment[], score: number, combo: number) => {
+      const categories = new Set(equipment.map(e => {
+        const eq = mockEquipmentCatalog.find(x => x.id === e.equipment_id)
+        return eq?.category
+      }))
+      return categories.size >= 3
+    },
+  },
+  {
+    id: 'a7',
+    title: 'Легенда',
+    description: 'Достигни 500 очков',
+    icon: '👑',
+    rarity: 'legendary',
+    check: (equipment: UserEquipment[], score: number, combo: number) => score >= 500,
+  },
+  {
+    id: 'a8',
+    title: 'Быстрая рука',
+    description: 'Добавь 5 предметов за 30 секунд',
+    icon: '⚡',
+    rarity: 'epic',
+    check: (equipment: UserEquipment[], score: number, combo: number) => false, // Checked via timer
+  },
+  {
+    id: 'a9',
+    title: 'Планировщик',
+    description: 'Имеешь более 5 "Планирую" предметов',
+    icon: '📋',
+    rarity: 'common',
+    check: (equipment: UserEquipment[], score: number, combo: number) =>
+      equipment.filter(e => e.status === 'planned').length >= 5,
+  },
+  {
+    id: 'a10',
+    title: 'Мечтатель года',
+    description: 'Имеешь более 5 "Хочу" предметов',
+    icon: '💭',
+    rarity: 'rare',
+    check: (equipment: UserEquipment[], score: number, combo: number) =>
+      equipment.filter(e => e.status === 'dream').length >= 5,
+  },
+  {
+    id: 'a11',
+    title: 'Владелец',
+    description: 'Имеешь 10 собственных предметов',
+    icon: '✨',
+    rarity: 'rare',
+    check: (equipment: UserEquipment[], score: number, combo: number) =>
+      equipment.filter(e => e.status === 'owned').length >= 10,
+  },
+  {
+    id: 'a12',
+    title: 'Кинодеятель',
+    description: 'Добавь оборудование из категорий камеры и свет',
+    icon: '🎬',
+    rarity: 'epic',
+    check: (equipment: UserEquipment[], score: number, combo: number) => {
+      const categories = new Set(equipment.map(e => {
+        const eq = mockEquipmentCatalog.find(x => x.id === e.equipment_id)
+        return eq?.category
+      }))
+      return categories.has('Камеры') && categories.has('Свет')
+    },
+  },
+]
+
+// =====================================================
+// MOTIVATIONAL MESSAGES
+// =====================================================
+const MOTIVATIONAL_MESSAGES = [
+  { text: 'Отличный выбор! 👍', chance: 0.3 },
+  { text: 'Сетап растёт! 📈', chance: 0.3 },
+  { text: 'Профессиональный подход! 💪', chance: 0.25 },
+  { text: 'Так держать! 🔥', chance: 0.3 },
+  { text: 'Невероятно быстро! ⚡', chance: 0.2 },
+  { text: 'Крутой выбор! 🎯', chance: 0.25 },
+]
+
+// =====================================================
+// TYPES
+// =====================================================
+interface Toast {
+  id: string
+  type: 'achievement' | 'quest' | 'level' | 'motivational' | 'combo'
+  text: string
+  icon: string
+  color: string
+  timestamp: number
+}
+
+// =====================================================
 // STYLES & KEYFRAMES
 // =====================================================
 const ANIMATION_STYLES = `
@@ -29,37 +287,6 @@ const ANIMATION_STYLES = `
     }
   }
 
-  @keyframes particle-burst {
-    0% {
-      opacity: 1;
-      transform: translate(0, 0) scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: translate(var(--tx), var(--ty)) scale(0);
-    }
-  }
-
-  @keyframes combo-pulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.15);
-    }
-  }
-
-  @keyframes celebrate-in {
-    0% {
-      opacity: 0;
-      transform: scale(0.5) translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-
   @keyframes slide-in-right {
     0% {
       opacity: 0;
@@ -68,6 +295,37 @@ const ANIMATION_STYLES = `
     100% {
       opacity: 1;
       transform: translateX(0);
+    }
+  }
+
+  @keyframes toast-slide-in {
+    0% {
+      opacity: 0;
+      transform: translateX(400px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes toast-fade-out {
+    0% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(400px);
+    }
+  }
+
+  @keyframes pulse-scale {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
     }
   }
 
@@ -82,70 +340,75 @@ const ANIMATION_STYLES = `
     }
   }
 
-  @keyframes glow-subtle {
+  @keyframes drag-highlight {
     0%, 100% {
-      box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+      box-shadow: inset 0 0 0 2px rgb(99 102 241 / 0);
     }
     50% {
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+      box-shadow: inset 0 0 0 2px rgb(99 102 241 / 0.5);
+    }
+  }
+
+  @keyframes particle-burst {
+    0% {
+      opacity: 1;
+      transform: translate(0, 0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--tx), var(--ty)) scale(0);
+    }
+  }
+
+  @keyframes level-up {
+    0% {
+      transform: scale(0.5) translateY(20px);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1) translateY(0);
+    }
+    100% {
+      transform: scale(1) translateY(-30px);
+      opacity: 0;
     }
   }
 `
 
 // =====================================================
-// COMPONENTS & HELPERS
-// =====================================================
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'owned':
-      return { emoji: '✓', label: 'Есть', color: 'bg-emerald-500/20 text-emerald-400' }
-    case 'planned':
-      return { emoji: '📋', label: 'Планирую', color: 'bg-blue-500/20 text-blue-400' }
-    case 'dream':
-      return { emoji: '❤️', label: 'Хочу', color: 'bg-rose-500/20 text-rose-400' }
-    default:
-      return { emoji: '•', label: status, color: 'bg-slate-600/20 text-slate-300' }
-  }
-}
-
-const formatPrice = (min: number | null, max: number | null): string => {
-  if (!min && !max) return '?'
-  if (min && !max) return `от $${min}`
-  if (!min && max) return `до $${max}`
-  return `$${min}-${max}`
-}
-
-// =====================================================
 // MAIN COMPONENT
 // =====================================================
-
 export default function BoardPage() {
-  const [step, setStep] = useState<'niche' | 'board'>('niche')
+  // State
   const [selectedNiche, setSelectedNiche] = useState<Niche | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
   const [userEquipment, setUserEquipment] = useState<UserEquipment[]>([])
   const [gameState, setGameState] = useState<GameState | null>(null)
+  const [totalXP, setTotalXP] = useState(0)
+  const [completedQuests, setCompletedQuests] = useState<string[]>([])
+  const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([])
+  const [toasts, setToasts] = useState<Toast[]>([])
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([])
-  const [celebrations, setCelebrations] = useState<Celebration[]>([])
-  const [expandedEquipmentId, setExpandedEquipmentId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const [isOverDropZone, setIsOverDropZone] = useState(false)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null)
   const boardContainerRef = useRef<HTMLDivElement>(null)
+  const dragSourceRef = useRef<EquipmentCatalog | null>(null)
 
-  // Initialize game state
+  // =====================================================
+  // LOAD/SAVE
+  // =====================================================
   useEffect(() => {
-    const saved = localStorage.getItem('kitwise-onboarding')
+    const saved = localStorage.getItem('kitwise-game-state')
     if (saved) {
       try {
         const data = JSON.parse(saved)
-        setSelectedNiche(mockNiches.find((n) => n.id === data.niches?.[0]?.id) || null)
+        setSelectedNiche(data.niche ? mockNiches.find(n => n.id === data.niche.id) || null : null)
         setUserEquipment(data.equipment || [])
-        setGameState({
-          ...initializeGameState(),
-          score: data.score || 0,
-        })
-        if (data.equipment?.length > 0) {
-          setStep('board')
-        }
+        setTotalXP(data.xp || 0)
+        setCompletedQuests(data.completedQuests || [])
+        setUnlockedAchievements(data.unlockedAchievements || [])
+        setGameState(data.gameState || initializeGameState())
       } catch (e) {
         setGameState(initializeGameState())
       }
@@ -154,166 +417,267 @@ export default function BoardPage() {
     }
   }, [])
 
-  // Save to localStorage
   useEffect(() => {
     if (gameState && selectedNiche) {
       localStorage.setItem(
-        'kitwise-onboarding',
+        'kitwise-game-state',
         JSON.stringify({
-          niches: [selectedNiche],
+          niche: selectedNiche,
           equipment: userEquipment,
-          score: gameState.score,
+          xp: totalXP,
+          completedQuests,
+          unlockedAchievements,
+          gameState,
           timestamp: Date.now(),
         })
       )
     }
-  }, [userEquipment, gameState, selectedNiche])
+  }, [userEquipment, gameState, selectedNiche, totalXP, completedQuests, unlockedAchievements])
 
-  // Clean up old floating texts
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFloatingTexts((prev) =>
-        prev.filter((text) => Date.now() - text.timestamp < 1500)
-      )
-    }, 100)
-    return () => clearInterval(timer)
-  }, [])
-
-  // Clean up old celebrations
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCelebrations((prev) =>
-        prev.filter((c) => Date.now() - c.timestamp < 3000)
-      )
-    }, 100)
-    return () => clearInterval(timer)
-  }, [])
-
-  const handleNicheSelect = (niche: Niche) => {
-    setSelectedNiche(niche)
-    setStep('board')
-  }
-
-  const handleAddEquipment = useCallback(
-    (equipment: EquipmentCatalog, status: 'owned' | 'planned' | 'dream') => {
-      const existingIndex = userEquipment.findIndex((e) => e.equipment_id === equipment.id)
-
-      let newEquipment: UserEquipment[]
-      if (existingIndex >= 0) {
-        // Update existing
-        newEquipment = [...userEquipment]
-        newEquipment[existingIndex] = {
-          ...newEquipment[existingIndex],
-          status,
-        }
-      } else {
-        // Add new
-        const newItem: UserEquipment = {
-          id: `user-eq-${Date.now()}-${Math.random()}`,
-          user_id: 'current-user',
-          equipment_id: equipment.id,
-          custom_name: null,
-          category: equipment.category,
-          status,
-          quantity: 1,
-          acquired_at: status === 'owned' ? new Date().toISOString() : null,
-          notes: null,
-        }
-        newEquipment = [...userEquipment, newItem]
+  // =====================================================
+  // QUEST & ACHIEVEMENT CHECKING
+  // =====================================================
+  const checkQuestsCompletion = useCallback((equipment: UserEquipment[], niche: string, xpGain: number = 0) => {
+    const newCompleted: string[] = []
+    for (const quest of QUESTS) {
+      if (!completedQuests.includes(quest.id) && quest.check(equipment, niche)) {
+        newCompleted.push(quest.id)
+        addToast({
+          type: 'quest',
+          text: `Квест выполнен: ${quest.title}!`,
+          icon: quest.icon,
+          color: 'emerald',
+        })
+        setTotalXP(prev => prev + quest.xp)
       }
+    }
+    if (newCompleted.length > 0) {
+      setCompletedQuests(prev => [...prev, ...newCompleted])
+    }
+  }, [completedQuests])
 
-      setUserEquipment(newEquipment)
+  const checkAchievements = useCallback((equipment: UserEquipment[], score: number, maxCombo: number) => {
+    const newUnlocked: string[] = []
+    for (const achievement of ACHIEVEMENTS) {
+      if (!unlockedAchievements.includes(achievement.id) && achievement.check(equipment, score, maxCombo)) {
+        newUnlocked.push(achievement.id)
+        addToast({
+          type: 'achievement',
+          text: `Ачивка разблокирована: ${achievement.title}!`,
+          icon: achievement.icon,
+          color: achievement.rarity === 'legendary' ? 'amber' : achievement.rarity === 'epic' ? 'violet' : achievement.rarity === 'rare' ? 'blue' : 'gray',
+        })
+      }
+    }
+    if (newUnlocked.length > 0) {
+      setUnlockedAchievements(prev => [...prev, ...newUnlocked])
+    }
+  }, [unlockedAchievements])
 
-      // Game mechanics
-      if (gameState && selectedNiche) {
-        const { newState, pointsEarned, events: gameEvents } = processAction(
-          gameState,
-          'add',
-          equipment.id,
-          selectedNiche.id,
-          newEquipment,
-          mockEquipmentCatalog,
-          window.innerWidth / 2,
-          window.innerHeight / 2
-        )
-        setGameState(newState)
+  // =====================================================
+  // TOAST MANAGEMENT
+  // =====================================================
+  const addToast = useCallback((toast: Omit<Toast, 'id' | 'timestamp'>) => {
+    const id = `${Date.now()}-${Math.random()}`
+    const newToast: Toast = {
+      ...toast,
+      id,
+      timestamp: Date.now(),
+    }
+    setToasts(prev => [...prev, newToast].slice(-3))
 
-        // Floating text
-        if (pointsEarned > 0) {
-          const floatingText: FloatingText = {
-            id: `ft-${Date.now()}`,
-            text: `+${pointsEarned}`,
-            x: window.innerWidth / 2,
-            y: window.innerHeight / 2,
-            color: newState.combo > 1 ? '#fbbf24' : '#4ade80',
-            timestamp: Date.now(),
-          }
-          setFloatingTexts((prev) => [...prev, floatingText])
-        }
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 3500)
+  }, [])
 
-        // Celebrations from events
-        for (const evt of gameEvents) {
-          if (evt.type === 'combo_milestone' || evt.type === 'streak_milestone' || evt.type === 'category_completed') {
-            const celebData = newState.celebrations.find((c: Celebration) => c.id === evt.celebrationId)
-            if (celebData) {
-              setCelebrations((prev) => [...prev, celebData])
-            }
-          }
-        }
+  // =====================================================
+  // EQUIPMENT HANDLING
+  // =====================================================
+  const handleAddEquipment = useCallback((equipment: EquipmentCatalog, status: 'owned' | 'planned' | 'dream' = 'owned') => {
+    if (!selectedNiche || !gameState) return
 
-        // Particles
-        if (boardContainerRef.current) {
-          const rect = boardContainerRef.current.getBoundingClientRect()
-          const newParticles = generateParticles(
-            rect.width / 2,
-            rect.height / 2,
-            8
-          )
-          newParticles.forEach((p: { id: string; tx: number; ty: number; delay: number }) => {
-            const div = document.createElement('div')
-            div.style.cssText = `
-              position: fixed;
-              left: ${rect.left + rect.width / 2}px;
-              top: ${rect.top + rect.height / 2}px;
-              width: 8px;
-              height: 8px;
-              background: ${['#FF1744', '#FFD700', '#00E5FF', '#76FF03'][p.delay % 4]};
-              border-radius: 50%;
-              pointer-events: none;
-              --tx: ${p.tx}px;
-              --ty: ${p.ty}px;
-              animation: particle-burst 0.8s ease-out forwards;
-            `
-            document.body.appendChild(div)
-            setTimeout(() => div.remove(), 800)
+    const existingIndex = userEquipment.findIndex(e => e.equipment_id === equipment.id)
+    let newEquipment: UserEquipment[]
+
+    if (existingIndex >= 0) {
+      newEquipment = [...userEquipment]
+      newEquipment[existingIndex] = { ...newEquipment[existingIndex], status }
+    } else {
+      const newItem: UserEquipment = {
+        id: `user-eq-${Date.now()}-${Math.random()}`,
+        user_id: 'current-user',
+        equipment_id: equipment.id,
+        custom_name: null,
+        category: equipment.category,
+        status,
+        quantity: 1,
+        acquired_at: status === 'owned' ? new Date().toISOString() : null,
+        notes: null,
+      }
+      newEquipment = [...userEquipment, newItem]
+    }
+
+    setUserEquipment(newEquipment)
+
+    // Game mechanics
+    const { newState, pointsEarned, events: gameEvents } = processAction(
+      gameState,
+      'add',
+      equipment.id,
+      selectedNiche.id,
+      newEquipment,
+      mockEquipmentCatalog,
+      window.innerWidth / 2,
+      window.innerHeight / 2
+    )
+
+    setGameState(newState)
+    const xpGain = Math.floor(pointsEarned / 5) // Convert points to XP
+    setTotalXP(prev => prev + xpGain)
+
+    // Floating text
+    if (pointsEarned > 0) {
+      const floatingText: FloatingText = {
+        id: `ft-${Date.now()}`,
+        text: `+${pointsEarned}`,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        color: newState.combo > 1 ? '#FFD700' : '#4AFF00',
+        timestamp: Date.now(),
+      }
+      setFloatingTexts(prev => [...prev, floatingText])
+    }
+
+    // Check for milestone toasts
+    if (newState.combo > 1 && newState.combo % 2 === 0) {
+      addToast({
+        type: 'combo',
+        text: `Комбо x${newState.combo}!`,
+        icon: '⚡',
+        color: 'amber',
+      })
+    }
+
+    // Motivational message
+    if (Math.random() < 0.3) {
+      const msg = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]
+      addToast({
+        type: 'motivational',
+        text: msg.text,
+        icon: '✨',
+        color: 'blue',
+      })
+    }
+
+    // Celebrations from events
+    for (const evt of gameEvents) {
+      if (evt.type === 'combo_milestone' || evt.type === 'streak_milestone' || evt.type === 'category_completed') {
+        const celebData = newState.celebrations.find(c => c.id === evt.celebrationId)
+        if (celebData) {
+          addToast({
+            type: 'combo',
+            text: celebData.title,
+            icon: celebData.icon || '🎉',
+            color: 'amber',
           })
         }
       }
+    }
 
-      setExpandedEquipmentId(null)
-    },
-    [userEquipment, gameState]
-  )
+    // Check quests and achievements
+    checkQuestsCompletion(newEquipment, selectedNiche.id, xpGain)
+    checkAchievements(newEquipment, newState.score, newState.maxCombo)
 
-  const handleRemoveEquipment = (equipmentId: string) => {
-    setUserEquipment((prev) =>
-      prev.filter((e) => e.equipment_id !== equipmentId)
-    )
-  }
+    // Particles
+    if (boardContainerRef.current) {
+      const rect = boardContainerRef.current.getBoundingClientRect()
+      const particles = generateParticles(rect.width / 2, rect.height / 2, 8)
+      particles.forEach((p: { id: string; tx: number; ty: number; delay: number }) => {
+        const div = document.createElement('div')
+        div.style.cssText = `
+          position: fixed;
+          left: ${rect.left + rect.width / 2}px;
+          top: ${rect.top + rect.height / 2}px;
+          width: 8px;
+          height: 8px;
+          background: ${['#FF1744', '#FFD700', '#00E5FF', '#76FF03'][p.delay % 4]};
+          border-radius: 50%;
+          pointer-events: none;
+          --tx: ${p.tx}px;
+          --ty: ${p.ty}px;
+          animation: particle-burst 0.8s ease-out forwards;
+          animation-delay: ${p.delay}ms;
+        `
+        document.body.appendChild(div)
+        setTimeout(() => div.remove(), 800)
+      })
+    }
 
-  const handleChangeQuantity = (equipmentId: string, delta: number) => {
-    setUserEquipment((prev) =>
-      prev.map((e) => {
+    setSelectedEquipmentId(null)
+  }, [userEquipment, gameState, selectedNiche, checkQuestsCompletion, checkAchievements, addToast])
+
+  const handleRemoveEquipment = useCallback((equipmentId: string) => {
+    setUserEquipment(prev => prev.filter(e => e.equipment_id !== equipmentId))
+  }, [])
+
+  const handleQuantityChange = useCallback((equipmentId: string, delta: number) => {
+    setUserEquipment(prev =>
+      prev.map(e => {
         if (e.equipment_id === equipmentId) {
-          const newQty = Math.max(1, e.quantity + delta)
-          return { ...e, quantity: newQty }
+          return { ...e, quantity: Math.max(1, e.quantity + delta) }
         }
         return e
       })
     )
+  }, [])
+
+  // =====================================================
+  // DRAG & DROP
+  // =====================================================
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, equipment: EquipmentCatalog) => {
+    dragSourceRef.current = equipment
+    setIsDragging(true)
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData('application/json', JSON.stringify(equipment))
   }
 
-  const filteredEquipment = mockEquipmentCatalog.filter((eq) => {
+  const handleDragEnd = () => {
+    setIsDragging(false)
+    dragSourceRef.current = null
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    setIsOverDropZone(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsOverDropZone(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsOverDropZone(false)
+    setIsDragging(false)
+
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'))
+      const equipment = mockEquipmentCatalog.find(eq => eq.id === data.id)
+      if (equipment) {
+        handleAddEquipment(equipment)
+      }
+    } catch (err) {
+      console.error('Drop error:', err)
+    }
+    dragSourceRef.current = null
+  }
+
+  // =====================================================
+  // FILTERS & COMPUTED
+  // =====================================================
+  const filteredEquipment = mockEquipmentCatalog.filter(eq => {
     const query = searchQuery.toLowerCase()
     return (
       eq.name.toLowerCase().includes(query) ||
@@ -322,69 +686,49 @@ export default function BoardPage() {
     )
   })
 
-  const userEquipmentMap = new Set(userEquipment.map((e) => e.equipment_id))
+  const completion = selectedNiche
+    ? calculateSetupCompletion(userEquipment, selectedNiche.id, mockEquipmentCatalog)
+    : 0
 
-  const ownedItems = userEquipment.filter((e) => e.status === 'owned')
-  const plannedItems = userEquipment.filter((e) => e.status === 'planned')
-  const dreamItems = userEquipment.filter((e) => e.status === 'dream')
+  const currentLevel = getLevelForXP(totalXP)
+  const xpProgress = getXPProgress(totalXP)
 
-  const totalValue =
-    ownedItems.reduce((sum, e) => {
-      const eq = mockEquipmentCatalog.find((eq) => eq.id === e.equipment_id)
-      const avg = eq ? ((eq.price_min || 0) + (eq.price_max || 0)) / 2 : 0
-      return sum + avg * e.quantity
-    }, 0) +
-    plannedItems.reduce((sum, e) => {
-      const eq = mockEquipmentCatalog.find((eq) => eq.id === e.equipment_id)
-      const avg = eq ? ((eq.price_min || 0) + (eq.price_max || 0)) / 2 : 0
-      return sum + avg * e.quantity
-    }, 0)
+  const ownedItems = userEquipment.filter(e => e.status === 'owned')
+  const plannedItems = userEquipment.filter(e => e.status === 'planned')
+  const dreamItems = userEquipment.filter(e => e.status === 'dream')
 
-  const handleShare = () => {
-    const text = `Я собираю комплект оборудования для ${selectedNiche?.name}! 📸 Уже добавил ${userEquipment.length} позиций. KitWise помогает выбирать правильное оборудование.`
-    if (navigator.share) {
-      navigator.share({
-        title: 'Мой борд в KitWise',
-        text,
-      })
-    } else {
-      navigator.clipboard.writeText(text)
-      alert('Текст скопирован в буфер обмена')
-    }
-  }
+  const totalValue = userEquipment.reduce((sum, e) => {
+    const eq = mockEquipmentCatalog.find(x => x.id === e.equipment_id)
+    const avg = eq ? ((eq.price_min || 0) + (eq.price_max || 0)) / 2 : 0
+    return sum + avg * e.quantity
+  }, 0)
 
-  if (step === 'niche') {
+  // =====================================================
+  // UI: NICHE SELECTION
+  // =====================================================
+  if (!selectedNiche) {
     return (
-      <div className="min-h-screen bg-slate-950 p-6">
+      <div className="min-h-screen bg-gray-50 p-8">
         <style>{ANIMATION_STYLES}</style>
-
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Выберите вашу специализацию
-            </h1>
-            <p className="text-slate-400 text-lg">
-              Мы подберём правильное оборудование именно для вас
-            </p>
+            <h1 className="text-5xl font-bold text-gray-900 mb-4">Выбери свою нишу</h1>
+            <p className="text-xl text-gray-600">Это определит рекомендации и квесты</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockNiches.map((niche) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockNiches.map(niche => (
               <button
                 key={niche.id}
-                onClick={() => handleNicheSelect(niche)}
-                className="group relative overflow-hidden rounded-lg bg-slate-900 p-6 text-left transition-all hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95"
-                style={{ animation: `card-entry 0.4s ease-out both` }}
+                onClick={() => setSelectedNiche(niche)}
+                className="group relative overflow-hidden rounded-2xl bg-white p-8 text-left transition-all border border-gray-100 hover:border-indigo-200 hover:shadow-md active:scale-95"
+                style={{ animation: 'card-entry 0.4s ease-out both' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-transparent opacity-0 group-hover:opacity-30 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative z-10">
-                  <div className="text-5xl mb-3">{niche.icon}</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    {niche.name}
-                  </h3>
-                  <p className="text-sm text-slate-400">
-                    {niche.description}
-                  </p>
+                  <div className="text-5xl mb-4">{niche.icon}</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{niche.name}</h3>
+                  <p className="text-gray-600">{niche.description}</p>
                 </div>
               </button>
             ))}
@@ -394,471 +738,377 @@ export default function BoardPage() {
     )
   }
 
-  // Board builder step
+  // =====================================================
+  // UI: BOARD PAGE
+  // =====================================================
   return (
-    <div className="min-h-screen bg-slate-950 p-6" ref={boardContainerRef}>
+    <div className="min-h-screen bg-gray-50 p-8" ref={boardContainerRef}>
       <style>{ANIMATION_STYLES}</style>
 
-      {/* Header with Score HUD */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex items-center justify-between bg-slate-900/80 backdrop-blur border border-slate-800 rounded-lg p-4">
-          <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* HEADER */}
+        <div className="flex items-center justify-between">
+          <div>
             <button
               onClick={() => {
-                setStep('niche')
                 setSelectedNiche(null)
                 setUserEquipment([])
                 setGameState(initializeGameState())
+                setTotalXP(0)
+                setCompletedQuests([])
+                setUnlockedAchievements([])
               }}
-              className="px-4 py-2 rounded bg-slate-800 hover:bg-slate-700 text-white text-sm transition"
+              className="px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-50 font-medium transition mb-4"
             >
-              ← Назад
+              ← Назад к нишам
             </button>
-            <div className="text-left">
-              <div className="text-slate-400 text-sm">Специализация</div>
-              <div className="text-xl font-bold text-white">
-                {selectedNiche?.name || 'Загрузка...'}
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">{selectedNiche.icon}</div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{selectedNiche.name}</h1>
+                <p className="text-gray-600">Собирай оборудование и зарабатывай опыт</p>
               </div>
             </div>
           </div>
 
           {gameState && (
-            <div className="flex items-center gap-6">
+            <div className="flex gap-6">
               {gameState.combo > 1 && (
-                <div
-                  className="text-center px-3 py-1 bg-amber-500/20 border border-amber-500/50 rounded"
-                  style={{ animation: 'combo-pulse 0.6s ease-in-out' }}
-                >
-                  <div className="text-amber-300 font-bold text-lg">
-                    {gameState.combo}x
-                  </div>
-                  <div className="text-amber-300 text-xs">Combo</div>
+                <div className="text-center px-4 py-3 bg-white rounded-2xl border-2 border-amber-200 shadow-sm" style={{ animation: 'pulse-scale 0.6s ease-in-out infinite' }}>
+                  <div className="text-3xl font-bold text-amber-600">{gameState.combo}x</div>
+                  <div className="text-sm font-medium text-amber-600">Комбо</div>
                 </div>
               )}
 
-              <div className="text-right">
-                <div className="text-slate-400 text-sm">Очки</div>
-                <div className="text-3xl font-bold text-green-400">
-                  {formatScore(gameState.score)}
-                </div>
+              <div className="text-right bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                <p className="text-sm text-gray-600">Очки</p>
+                <p className="text-4xl font-bold text-violet-600">{formatScore(gameState.score)}</p>
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Main content: Catalog + Board */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Equipment Catalog */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-            <input
-              type="text"
-              placeholder="🔍 Поиск по названию, бренду или категории..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+        {/* PROGRESS BAR */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-900">Готовность сетапа</h3>
+              <p className="text-sm text-gray-600">{completion}% собрано</p>
+            </div>
+            <div className="text-2xl">{completion >= 80 ? '🏆' : completion >= 50 ? '⭐' : '📦'}</div>
+          </div>
+          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300"
+              style={{ width: `${completion}%` }}
             />
           </div>
+        </div>
 
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-            {filteredEquipment.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                Ничего не найдено по запросу "{searchQuery}"
-              </div>
-            ) : (
-              filteredEquipment.map((equipment) => {
-                const isAdded = userEquipmentMap.has(equipment.id)
-                const userEq = userEquipment.find(
-                  (e) => e.equipment_id === equipment.id
-                )
-                const icon =
-                  categoryIcons[equipment.category] || '📦'
+        {/* MAIN GRID: Catalog + Board + Game Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* LEFT: CATALOG (~45% on desktop) */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <input
+                type="text"
+                placeholder="Поиск оборудования..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100"
+              />
+            </div>
 
-                return (
-                  <div
-                    key={equipment.id}
-                    className={`bg-slate-900 border rounded-lg p-4 transition-all ${
-                      expandedEquipmentId === equipment.id
-                        ? 'border-blue-500/50 ring-1 ring-blue-500/30'
-                        : 'border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
+              {filteredEquipment.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">
+                  Ничего не найдено по запросу "{searchQuery}"
+                </div>
+              ) : (
+                filteredEquipment.map(equipment => {
+                  const isAdded = userEquipment.some(e => e.equipment_id === equipment.id)
+                  const userEq = userEquipment.find(e => e.equipment_id === equipment.id)
+                  const icon = categoryIcons[equipment.category] || '📦'
+
+                  return (
+                    <div
+                      key={equipment.id}
+                      draggable
+                      onDragStart={e => handleDragStart(e, equipment)}
+                      onDragEnd={handleDragEnd}
+                      className={`bg-white rounded-xl p-4 border transition-all cursor-move ${
+                        isAdded
+                          ? 'border-indigo-200 bg-indigo-50'
+                          : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
                         <div className="text-3xl flex-shrink-0">{icon}</div>
 
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-white truncate">
-                            {equipment.name}
-                          </h4>
-                          <p className="text-sm text-slate-400">
-                            {equipment.brand}
-                          </p>
-                          <div className="flex gap-2 items-center mt-2 text-xs">
-                            <span className="px-2 py-1 bg-slate-800 rounded text-slate-300">
-                              {equipment.category}
-                            </span>
-                            <span className="text-slate-500">
-                              {formatPrice(equipment.price_min, equipment.price_max)}
-                            </span>
+                          <h4 className="font-semibold text-gray-900 truncate">{equipment.name}</h4>
+                          <p className="text-sm text-gray-600">{equipment.brand}</p>
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">{equipment.category}</span>
+                            {equipment.price_min && (
+                              <span className="text-xs text-gray-600">${equipment.price_min}-${equipment.price_max || equipment.price_min}</span>
+                            )}
                           </div>
                         </div>
+
+                        {isAdded && userEq && (
+                          <div className="flex-shrink-0">
+                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                              userEq.status === 'owned'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : userEq.status === 'planned'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-rose-100 text-rose-700'
+                            }`}>
+                              {userEq.status === 'owned' ? '✓ Есть' : userEq.status === 'planned' ? '📋 План' : '❤️ Хочу'}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      {isAdded && userEq ? (
-                        <div className="flex-shrink-0">
-                          <div
-                            className={`px-3 py-1.5 rounded text-xs font-semibold ${
-                              getStatusBadge(userEq.status).color
-                            }`}
-                          >
-                            {getStatusBadge(userEq.status).emoji}{' '}
-                            {getStatusBadge(userEq.status).label}
+                      {!isAdded && (
+                        <button
+                          onClick={() => handleAddEquipment(equipment)}
+                          className="mt-3 w-full px-3 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition active:scale-95"
+                        >
+                          + Добавить
+                        </button>
+                      )}
+
+                      {isAdded && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            {(['owned', 'planned', 'dream'] as const).map(status => (
+                              <button
+                                key={status}
+                                onClick={() => handleAddEquipment(equipment, status)}
+                                className={`px-2 py-2 rounded-lg text-sm font-medium transition ${
+                                  userEq?.status === status
+                                    ? status === 'owned'
+                                      ? 'bg-emerald-500 text-white'
+                                      : status === 'planned'
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-rose-500 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                              >
+                                {status === 'owned' ? '✓' : status === 'planned' ? '📋' : '❤️'}
+                              </button>
+                            ))}
                           </div>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {/* Expanded status selector */}
-                    {expandedEquipmentId === equipment.id && (
-                      <div
-                        className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-3 gap-2 animate-in fade-in duration-200"
-                      >
-                        {(
-                          [
-                            {
-                              status: 'owned' as const,
-                              emoji: '✓',
-                              label: 'Есть',
-                            },
-                            {
-                              status: 'planned' as const,
-                              emoji: '📋',
-                              label: 'Планирую',
-                            },
-                            {
-                              status: 'dream' as const,
-                              emoji: '❤️',
-                              label: 'Хочу',
-                            },
-                          ] as const
-                        ).map((option) => (
                           <button
-                            key={option.status}
-                            onClick={() => {
-                              handleAddEquipment(equipment, option.status)
-                              setExpandedEquipmentId(null)
-                            }}
-                            className={`px-3 py-2.5 rounded text-sm font-medium transition-all ${
-                              userEq?.status === option.status
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                            }`}
-                          >
-                            {option.emoji} {option.label}
-                          </button>
-                        ))}
-
-                        {isAdded && (
-                          <button
-                            onClick={() => {
-                              handleRemoveEquipment(equipment.id)
-                              setExpandedEquipmentId(null)
-                            }}
-                            className="col-span-3 px-3 py-2 rounded text-sm font-medium bg-rose-900/30 text-rose-400 hover:bg-rose-900/50 transition-all border border-rose-800/50"
+                            onClick={() => handleRemoveEquipment(equipment.id)}
+                            className="w-full px-3 py-2 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200 font-medium transition text-sm"
                           >
                             ✕ Удалить
                           </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Click to expand/collapse */}
-                    {!isAdded && (
-                      <button
-                        onClick={() =>
-                          setExpandedEquipmentId(
-                            expandedEquipmentId === equipment.id
-                              ? null
-                              : equipment.id
-                          )
-                        }
-                        className="mt-3 w-full px-3 py-2 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95"
-                      >
-                        + Добавить в борд
-                      </button>
-                    )}
-
-                    {isAdded && expandedEquipmentId !== equipment.id && (
-                      <button
-                        onClick={() => setExpandedEquipmentId(equipment.id)}
-                        className="mt-3 w-full px-3 py-2 rounded text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
-                      >
-                        Изменить статус
-                      </button>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Right: My Board Summary */}
-        <div className="lg:col-span-1">
-          <div
-            className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden sticky top-6"
-            style={{ animation: `slide-in-right 0.4s ease-out` }}
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600/20 to-blue-500/20 border-b border-blue-500/30 p-4">
-              <h2 className="text-xl font-bold text-white mb-1">Мой борд</h2>
-              <p className="text-sm text-slate-400">
-                {userEquipment.length} позиций
-              </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
             </div>
+          </div>
 
-            {/* Content */}
-            <div className="p-4 space-y-6 max-h-[70vh] overflow-y-auto">
+          {/* CENTER: BOARD DROP ZONE (~30% on desktop) */}
+          <div className="lg:col-span-1">
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`bg-white rounded-2xl border-2 transition-all ${
+                isOverDropZone
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-dashed border-gray-300 hover:border-gray-400'
+              }`}
+              style={isOverDropZone ? { animation: 'drag-highlight 1s ease-in-out infinite' } : {}}
+            >
               {userEquipment.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <div className="text-4xl mb-2">📋</div>
-                  <p>Начните добавлять оборудование</p>
+                <div className="h-[400px] flex flex-col items-center justify-center text-center p-6">
+                  <div className="text-5xl mb-3">📦</div>
+                  <p className="text-gray-600 font-medium mb-2">Перетащи оборудование сюда</p>
+                  <p className="text-sm text-gray-500">или нажми кнопку "Добавить"</p>
                 </div>
               ) : (
-                <>
-                  {/* Owned Items */}
-                  {ownedItems.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-emerald-400 mb-3">
-                        ✓ ЕСТЬ ({ownedItems.length})
-                      </h3>
-                      <div className="space-y-2">
-                        {ownedItems.map((item) => {
-                          const eq = mockEquipmentCatalog.find(
-                            (e) => e.id === item.equipment_id
-                          )
-                          return (
-                            <div
-                              key={item.id}
-                              className="bg-slate-800/50 border border-emerald-500/20 rounded p-3"
+                <div className="p-4 space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto">
+                  {userEquipment.map(item => {
+                    const eq = mockEquipmentCatalog.find(e => e.id === item.equipment_id)
+                    const icon = categoryIcons[eq?.category || ''] || '📦'
+                    return (
+                      <div key={item.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="text-xl flex-shrink-0">{icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{eq?.name}</p>
+                            <p className="text-xs text-gray-600">{eq?.brand}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveEquipment(item.equipment_id)}
+                            className="text-gray-400 hover:text-rose-600 transition flex-shrink-0"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-xs font-medium px-2 py-1 rounded ${
+                            item.status === 'owned'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : item.status === 'planned'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-rose-100 text-rose-700'
+                          }`}>
+                            {item.status === 'owned' ? '✓ Есть' : item.status === 'planned' ? '📋 План' : '❤️ Хочу'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleQuantityChange(item.equipment_id, -1)}
+                              className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-900 text-sm"
                             >
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white truncate">
-                                    {eq?.name || 'Unknown'}
-                                  </p>
-                                  <p className="text-xs text-slate-400">
-                                    {eq?.brand}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => handleRemoveEquipment(item.equipment_id)}
-                                  className="flex-shrink-0 text-slate-500 hover:text-rose-400 transition text-lg"
-                                  title="Удалить"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 bg-slate-900/50 rounded px-2 py-1">
-                                  <button
-                                    onClick={() =>
-                                      handleChangeQuantity(item.equipment_id, -1)
-                                    }
-                                    className="text-slate-400 hover:text-white w-5 h-5 flex items-center justify-center"
-                                  >
-                                    −
-                                  </button>
-                                  <span className="text-white font-semibold w-4 text-center">
-                                    {item.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      handleChangeQuantity(item.equipment_id, 1)
-                                    }
-                                    className="text-slate-400 hover:text-white w-5 h-5 flex items-center justify-center"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <span className="text-xs text-slate-500">
-                                  {eq ? `$${Math.round(((eq.price_min || 0) + (eq.price_max || 0)) / 2 * item.quantity)}` : '—'}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Planned Items */}
-                  {plannedItems.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-blue-400 mb-3">
-                        📋 ПЛАНИРУЮ ({plannedItems.length})
-                      </h3>
-                      <div className="space-y-2">
-                        {plannedItems.map((item) => {
-                          const eq = mockEquipmentCatalog.find(
-                            (e) => e.id === item.equipment_id
-                          )
-                          return (
-                            <div
-                              key={item.id}
-                              className="bg-slate-800/50 border border-blue-500/20 rounded p-3"
+                              −
+                            </button>
+                            <span className="w-6 text-center text-sm font-medium text-gray-900">{item.quantity}</span>
+                            <button
+                              onClick={() => handleQuantityChange(item.equipment_id, 1)}
+                              className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-900 text-sm"
                             >
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white truncate">
-                                    {eq?.name || 'Unknown'}
-                                  </p>
-                                  <p className="text-xs text-slate-400">
-                                    {eq?.brand}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => handleRemoveEquipment(item.equipment_id)}
-                                  className="flex-shrink-0 text-slate-500 hover:text-rose-400 transition text-lg"
-                                  title="Удалить"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 bg-slate-900/50 rounded px-2 py-1">
-                                  <button
-                                    onClick={() =>
-                                      handleChangeQuantity(item.equipment_id, -1)
-                                    }
-                                    className="text-slate-400 hover:text-white w-5 h-5 flex items-center justify-center"
-                                  >
-                                    −
-                                  </button>
-                                  <span className="text-white font-semibold w-4 text-center">
-                                    {item.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      handleChangeQuantity(item.equipment_id, 1)
-                                    }
-                                    className="text-slate-400 hover:text-white w-5 h-5 flex items-center justify-center"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <span className="text-xs text-slate-500">
-                                  {eq ? `$${Math.round(((eq.price_min || 0) + (eq.price_max || 0)) / 2 * item.quantity)}` : '—'}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
+                              +
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Dream Items */}
-                  {dreamItems.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-rose-400 mb-3">
-                        ❤️ ХОЧУ ({dreamItems.length})
-                      </h3>
-                      <div className="space-y-2">
-                        {dreamItems.map((item) => {
-                          const eq = mockEquipmentCatalog.find(
-                            (e) => e.id === item.equipment_id
-                          )
-                          return (
-                            <div
-                              key={item.id}
-                              className="bg-slate-800/50 border border-rose-500/20 rounded p-3"
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white truncate">
-                                    {eq?.name || 'Unknown'}
-                                  </p>
-                                  <p className="text-xs text-slate-400">
-                                    {eq?.brand}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => handleRemoveEquipment(item.equipment_id)}
-                                  className="flex-shrink-0 text-slate-500 hover:text-rose-400 transition text-lg"
-                                  title="Удалить"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 bg-slate-900/50 rounded px-2 py-1">
-                                  <button
-                                    onClick={() =>
-                                      handleChangeQuantity(item.equipment_id, -1)
-                                    }
-                                    className="text-slate-400 hover:text-white w-5 h-5 flex items-center justify-center"
-                                  >
-                                    −
-                                  </button>
-                                  <span className="text-white font-semibold w-4 text-center">
-                                    {item.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      handleChangeQuantity(item.equipment_id, 1)
-                                    }
-                                    className="text-slate-400 hover:text-white w-5 h-5 flex items-center justify-center"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <span className="text-xs text-slate-500">
-                                  {eq ? `$${Math.round(((eq.price_min || 0) + (eq.price_max || 0)) / 2 * item.quantity)}` : '—'}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Stats & Summary */}
-              {userEquipment.length > 0 && (
-                <div className="pt-4 border-t border-slate-800 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Предметов:</span>
-                    <span className="font-semibold text-white">
-                      {userEquipment.reduce((sum, e) => sum + e.quantity, 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Примерная стоимость:</span>
-                    <span className="font-semibold text-green-400">
-                      ${Math.round(totalValue)}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={handleShare}
-                    className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <span>📤 Поделиться</span>
-                  </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
+          </div>
+
+          {/* RIGHT: GAME PANEL (~25% on desktop) */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* LEVEL CARD */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-4xl">{currentLevel.icon}</div>
+                <div>
+                  <p className="text-sm text-gray-600">Уровень</p>
+                  <p className="text-xl font-bold text-gray-900">{currentLevel.title}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">XP: {xpProgress.current}/{xpProgress.max}</span>
+                  <span className="font-medium text-gray-900">{Math.round(xpProgress.percent)}%</span>
+                </div>
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-violet-500 to-violet-400 transition-all duration-300"
+                    style={{ width: `${xpProgress.percent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-600">Осталось до уровня: {xpProgress.max - xpProgress.current} XP</p>
+              </div>
+            </div>
+
+            {/* QUESTS CARD */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span>🎯</span> Активные квесты
+              </h3>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {QUESTS.map(quest => {
+                  const isCompleted = completedQuests.includes(quest.id)
+                  return (
+                    <div key={quest.id} className={`p-3 rounded-lg border ${
+                      isCompleted
+                        ? 'bg-gray-50 border-gray-200 opacity-60'
+                        : 'bg-white border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg flex-shrink-0">{isCompleted ? '✓' : quest.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                            {quest.title}
+                          </p>
+                          <p className="text-xs text-gray-600">{quest.description}</p>
+                          {!isCompleted && <p className="text-xs text-violet-600 font-medium mt-1">+{quest.xp} XP</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* ACHIEVEMENTS CARD */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span>🏆</span> Ачивки
+              </h3>
+              <div className="grid grid-cols-4 gap-2">
+                {ACHIEVEMENTS.map(achievement => {
+                  const isUnlocked = unlockedAchievements.includes(achievement.id)
+                  return (
+                    <div
+                      key={achievement.id}
+                      className={`aspect-square flex items-center justify-center rounded-lg border-2 transition ${
+                        isUnlocked
+                          ? `border-${achievement.rarity === 'legendary' ? 'amber' : achievement.rarity === 'epic' ? 'violet' : achievement.rarity === 'rare' ? 'blue' : 'gray'}-200 bg-${achievement.rarity === 'legendary' ? 'amber' : achievement.rarity === 'epic' ? 'violet' : achievement.rarity === 'rare' ? 'blue' : 'gray'}-50 text-2xl`
+                          : 'border-gray-200 bg-gray-50 text-2xl opacity-40'
+                      }`}
+                      title={isUnlocked ? achievement.title : 'Заблокирована'}
+                    >
+                      {isUnlocked ? achievement.icon : '🔒'}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* STATS CARD */}
+            {userEquipment.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3">Статистика</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Предметов:</span>
+                    <span className="font-semibold text-gray-900">{userEquipment.reduce((sum, e) => sum + e.quantity, 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Типов:</span>
+                    <span className="font-semibold text-gray-900">{userEquipment.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Стоимость:</span>
+                    <span className="font-semibold text-emerald-600">${Math.round(totalValue)}</span>
+                  </div>
+                  <div className="flex justify-between pt-3 border-t border-gray-200">
+                    <span className="text-gray-600">Есть:</span>
+                    <span className="font-semibold text-emerald-600">{ownedItems.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Планирую:</span>
+                    <span className="font-semibold text-blue-600">{plannedItems.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Хочу:</span>
+                    <span className="font-semibold text-rose-600">{dreamItems.length}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Floating texts */}
-      {floatingTexts.map((text) => (
+      {/* FLOATING TEXTS */}
+      {floatingTexts.map(text => (
         <div
           key={text.id}
           style={{
@@ -869,24 +1119,40 @@ export default function BoardPage() {
             animation: 'float-up 1.5s ease-out forwards',
             color: text.color,
             fontWeight: 'bold',
-            fontSize: '24px',
-            textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
+            fontSize: '28px',
+            textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
           }}
         >
           {text.text}
         </div>
       ))}
 
-      {/* Celebration alerts */}
-      {celebrations.map((celebration) => (
-        <div
-          key={celebration.id}
-          className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-amber-600 to-amber-500 text-white px-6 py-3 rounded-lg shadow-lg font-semibold z-50"
-          style={{ animation: 'celebrate-in 0.4s ease-out' }}
-        >
-          {celebration.icon} {celebration.title}
-        </div>
-      ))}
+      {/* TOASTS */}
+      <div className="fixed bottom-8 right-8 z-50 space-y-3">
+        {toasts.map(toast => {
+          const bgColor = {
+            achievement: 'bg-amber-50 border-amber-200',
+            quest: 'bg-emerald-50 border-emerald-200',
+            level: 'bg-violet-50 border-violet-200',
+            motivational: 'bg-blue-50 border-blue-200',
+            combo: 'bg-amber-50 border-amber-200',
+          }[toast.type]
+
+          const isExiting = Date.now() - toast.timestamp > 3000
+          return (
+            <div
+              key={toast.id}
+              className={`bg-white rounded-xl p-4 border border-gray-200 shadow-lg flex items-center gap-3 transition-all ${bgColor} ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+              style={{
+                animation: isExiting ? 'toast-fade-out 0.3s ease-out forwards' : 'toast-slide-in 0.3s ease-out forwards',
+              }}
+            >
+              <span className="text-2xl">{toast.icon}</span>
+              <p className="font-medium text-gray-900 text-sm">{toast.text}</p>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

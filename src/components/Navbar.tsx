@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Camera, Home, Zap, User, Menu, X, LayoutGrid } from 'lucide-react'
+import { Camera, LayoutGrid, User, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Navbar() {
@@ -15,8 +15,7 @@ export default function Navbar() {
   }
 
   const links = [
-    { href: '/dashboard', label: 'Дашборд', icon: Home },
-    { href: '/recommendations', label: 'Рекомендации', icon: Zap },
+    { href: '/dashboard', label: 'Дашборд', icon: LayoutGrid },
     { href: '/board', label: 'Борд', icon: LayoutGrid },
     { href: '/profile', label: 'Профиль', icon: User },
   ]
@@ -24,12 +23,12 @@ export default function Navbar() {
   const isActive = (href: string) => pathname === href
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Camera className="h-6 w-6 text-purple-500" />
-            <span className="text-xl font-bold gradient-text">KitWise</span>
+            <Camera className="h-6 w-6 text-indigo-600" />
+            <span className="text-xl font-bold text-gray-900">KitWise</span>
           </Link>
 
           {/* Desktop Menu */}
@@ -40,8 +39,8 @@ export default function Navbar() {
                 href={href}
                 className={`flex items-center gap-2 transition-colors ${
                   isActive(href)
-                    ? 'text-blue-400'
-                    : 'text-slate-400 hover:text-slate-100'
+                    ? 'text-indigo-600 font-semibold'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -53,7 +52,7 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden"
+            className="md:hidden text-gray-900"
           >
             {mobileOpen ? (
               <X className="h-6 w-6" />
@@ -70,10 +69,10 @@ export default function Navbar() {
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 transition-colors ${
+                className={`flex items-center gap-2 rounded-xl px-4 py-3 transition-colors ${
                   isActive(href)
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                    ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
                 onClick={() => setMobileOpen(false)}
               >
