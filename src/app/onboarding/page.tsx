@@ -200,24 +200,24 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         {/* Progress Bar */}
         <div className="mb-12">
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-slate-100">
+            <h1 className="text-3xl font-bold text-gray-900">
               {step === 'niche' && 'Выберите вашу нишу'}
               {step === 'equipment' && 'Добавьте свое оборудование'}
               {step === 'results' && 'Ваш результат'}
             </h1>
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-gray-600">
               {step === 'niche' && '1 из 3'}
               {step === 'equipment' && '2 из 3'}
               {step === 'results' && '3 из 3'}
             </span>
           </div>
 
-          <div className="h-1 overflow-hidden rounded-full bg-slate-800">
+          <div className="h-1 overflow-hidden rounded-full bg-gray-200">
             <div
               className="h-full bg-gradient-accent transition-all duration-300"
               style={{
@@ -235,7 +235,7 @@ export default function OnboardingPage() {
         {/* Step 1: Niche Selection */}
         {step === 'niche' && (
           <div className="space-y-8">
-            <p className="text-lg text-slate-400">
+            <p className="text-lg text-gray-600">
               Выберите вашу основную специализацию. Это поможет нам дать вам
               точные рекомендации.
             </p>
@@ -273,20 +273,20 @@ export default function OnboardingPage() {
         {step === 'equipment' && (
           <div className="space-y-6">
             <div>
-              <p className="text-lg text-slate-400 mb-4">
+              <p className="text-lg text-gray-600 mb-4">
                 Найдите и отметьте оборудование, которое у вас есть или планируете купить.
               </p>
             </div>
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Поиск по названию, бренду..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl bg-slate-800/50 border border-slate-700 pl-10 pr-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-xl bg-white border border-gray-200 pl-10 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/10"
               />
             </div>
 
@@ -297,7 +297,7 @@ export default function OnboardingPage() {
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   categoryFilter === 'all'
                     ? 'bg-gradient-accent text-white'
-                    : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                    : 'border border-gray-200 text-gray-600 hover:border-gray-300'
                 }`}
               >
                 Все ({allEquipment.length})
@@ -308,8 +308,8 @@ export default function OnboardingPage() {
                   onClick={() => { setCategoryFilter(cat); setBrandFilter('all') }}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all flex items-center gap-1 ${
                     categoryFilter === cat
-                      ? 'bg-purple-500 text-white'
-                      : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                      ? 'bg-indigo-600 text-white'
+                      : 'border border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
                   <span>{categoryIcons[cat] || '📦'}</span>
@@ -335,8 +335,8 @@ export default function OnboardingPage() {
                   onClick={() => setBrandFilter('all')}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                     brandFilter === 'all'
-                      ? 'bg-cyan-500 text-white'
-                      : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                      ? 'bg-indigo-500 text-white'
+                      : 'border border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
                   Все бренды
@@ -347,8 +347,8 @@ export default function OnboardingPage() {
                     onClick={() => setBrandFilter(brand)}
                     className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                       brandFilter === brand
-                        ? 'bg-cyan-500 text-white'
-                        : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                        ? 'bg-indigo-500 text-white'
+                        : 'border border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
                     {brand}
@@ -358,11 +358,11 @@ export default function OnboardingPage() {
             )}
 
             {/* Results count */}
-            <div className="card p-3 bg-blue-500/10 border-blue-500/30 flex items-center justify-between">
-              <p className="text-sm text-blue-300">
+            <div className="card p-3 bg-indigo-50 border border-indigo-100 flex items-center justify-between">
+              <p className="text-sm text-indigo-700">
                 Показано: {filteredEquipment.length} из {allEquipment.length}
               </p>
-              <p className="text-sm text-emerald-400 font-semibold">
+              <p className="text-sm text-emerald-600 font-semibold">
                 Выбрано: {selectedEquipment.length}
               </p>
             </div>
@@ -388,8 +388,8 @@ export default function OnboardingPage() {
             </div>
 
             {filteredEquipment.length === 0 && (
-              <div className="card p-8 text-center">
-                <p className="text-slate-400">Ничего не найдено. Попробуйте другой фильтр или поиск.</p>
+              <div className="card p-8 text-center bg-white">
+                <p className="text-gray-500">Ничего не найдено. Попробуйте другой фильтр или поиск.</p>
               </div>
             )}
 
@@ -420,8 +420,8 @@ export default function OnboardingPage() {
         {/* Step 3: Results */}
         {step === 'results' && (
           <div className="space-y-8">
-            <div className="card space-y-8 p-8 text-center">
-              <h2 className="text-2xl font-bold text-slate-100">
+            <div className="card space-y-8 p-8 text-center bg-white">
+              <h2 className="text-2xl font-bold text-gray-900">
                 Ваша оценка готовности
               </h2>
 
@@ -432,14 +432,14 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-slate-400">
+                <p className="text-gray-600">
                   Вы готовы работать в нише{' '}
-                  <span className="font-semibold text-slate-100">
+                  <span className="font-semibold text-gray-900">
                     {selectedNiche?.name}
                   </span>{' '}
                   на {setupScore}%
                 </p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-gray-500">
                   {setupScore < 30 &&
                     'Рекомендуем сначала собрать базовое оборудование'}
                   {setupScore >= 30 &&
@@ -451,24 +451,24 @@ export default function OnboardingPage() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-lg bg-slate-800/50 p-4">
-                  <p className="text-xs text-slate-400 mb-1">Оборудования</p>
-                  <p className="text-2xl font-bold text-slate-100">
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-xs text-gray-500 mb-1">Оборудования</p>
+                  <p className="text-2xl font-bold text-gray-900">
                     {selectedEquipment.length}
                   </p>
                 </div>
-                <div className="rounded-lg bg-slate-800/50 p-4">
-                  <p className="text-xs text-slate-400 mb-1">Есть</p>
-                  <p className="text-2xl font-bold text-green-400">
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-xs text-gray-500 mb-1">Есть</p>
+                  <p className="text-2xl font-bold text-emerald-500">
                     {
                       selectedEquipment.filter((e) => e.status === 'owned')
                         .length
                     }
                   </p>
                 </div>
-                <div className="rounded-lg bg-slate-800/50 p-4">
-                  <p className="text-xs text-slate-400 mb-1">План</p>
-                  <p className="text-2xl font-bold text-yellow-400">
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-xs text-gray-500 mb-1">План</p>
+                  <p className="text-2xl font-bold text-amber-500">
                     {
                       selectedEquipment.filter((e) => e.status === 'planned')
                         .length
@@ -477,9 +477,9 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg bg-slate-800/50 p-4">
-                <p className="text-xs text-slate-400 mb-1">Единиц техники</p>
-                <p className="text-2xl font-bold text-cyan-400">
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs text-gray-500 mb-1">Единиц техники</p>
+                <p className="text-2xl font-bold text-indigo-600">
                   {selectedEquipment.reduce((sum, e) => sum + (e.quantity || 1), 0)}
                 </p>
               </div>
@@ -491,7 +491,7 @@ export default function OnboardingPage() {
               </button>
               <Link
                 href="/board"
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold hover:opacity-90 transition-opacity"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 text-white font-semibold hover:opacity-90 transition-opacity"
               >
                 <LayoutGrid className="w-4 h-4" />
                 Смотреть борд

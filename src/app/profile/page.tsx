@@ -86,19 +86,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl space-y-8">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-slate-100">Ваш профиль</h1>
-          <p className="text-lg text-slate-400">Карточка вашего оборудования</p>
+          <h1 className="text-4xl font-bold text-gray-900">Ваш профиль</h1>
+          <p className="text-lg text-gray-600">Карточка вашего оборудования</p>
         </div>
 
         {/* Profile Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900/40 via-slate-900/60 to-blue-900/40 p-12 border border-slate-700">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-12 border border-gray-200">
           {/* Decorative circles */}
-          <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-purple-500/10 blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-indigo-100 blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-blue-100 blur-3xl" />
 
           <div className="relative z-10 space-y-8">
             {/* Top section with progress ring */}
@@ -109,51 +109,51 @@ export default function ProfilePage() {
 
               <div className="flex-1 space-y-4">
                 <div>
-                  <p className="text-sm text-slate-400 mb-1">Имя</p>
-                  <h2 className="text-3xl font-bold text-slate-100">
+                  <p className="text-sm text-gray-600 mb-1">Имя</p>
+                  <h2 className="text-3xl font-bold text-gray-900">
                     {profile.full_name}
                   </h2>
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-400 mb-1">Специализация</p>
-                  <p className="text-xl font-semibold text-slate-100">
+                  <p className="text-sm text-gray-600 mb-1">Специализация</p>
+                  <p className="text-xl font-semibold text-gray-900">
                     {niche?.name || 'Не определена'}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-400 mb-1">Email</p>
-                  <p className="text-sm text-slate-300">{profile.email}</p>
+                  <p className="text-sm text-gray-600 mb-1">Email</p>
+                  <p className="text-sm text-gray-700">{profile.email}</p>
                 </div>
               </div>
             </div>
 
             {/* Stats grid */}
-            <div className="grid gap-4 sm:grid-cols-3 border-t border-slate-700 pt-8">
+            <div className="grid gap-4 sm:grid-cols-3 border-t border-gray-200 pt-8">
               <div className="text-center">
-                <p className="text-xs text-slate-400 mb-1">Готовность</p>
+                <p className="text-xs text-gray-600 mb-1">Готовность</p>
                 <p className="text-2xl font-bold gradient-text">
                   {profile.setup_score}%
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-slate-400 mb-1">Оборудование</p>
-                <p className="text-2xl font-bold text-slate-100">
+                <p className="text-xs text-gray-600 mb-1">Оборудование</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {userEquipmentCount}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-slate-400 mb-1">Статус</p>
-                <p className="text-2xl font-bold text-purple-400">
+                <p className="text-xs text-gray-600 mb-1">Статус</p>
+                <p className="text-2xl font-bold text-violet-500">
                   {profile.is_business ? 'Pro' : 'Creator'}
                 </p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-700 pt-6 text-center">
-              <p className="text-sm text-slate-500">
+            <div className="border-t border-gray-200 pt-6 text-center">
+              <p className="text-sm text-gray-500">
                 Создано в KitWise — платформе умного подбора оборудования
               </p>
             </div>
@@ -163,8 +163,8 @@ export default function ProfilePage() {
         {/* Actions */}
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Copy Link */}
-          <div className="card p-6">
-            <h3 className="mb-4 font-semibold text-slate-100">
+          <div className="card p-6 bg-white">
+            <h3 className="mb-4 font-semibold text-gray-900">
               Поделиться профилем
             </h3>
             <div className="mb-4 flex gap-2">
@@ -172,24 +172,24 @@ export default function ProfilePage() {
                 type="text"
                 value={shareLink}
                 readOnly
-                className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
               />
               <button
                 onClick={handleCopyLink}
-                className="rounded-lg bg-blue-500/20 px-4 py-2 text-blue-400 hover:bg-blue-500/30 transition-colors flex items-center gap-2"
+                className="rounded-lg bg-indigo-50 px-4 py-2 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center gap-2"
               >
                 <Copy className="h-4 w-4" />
                 {copied ? 'Скопировано' : 'Копировать'}
               </button>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-gray-500">
               Поделитесь этой ссылкой, чтобы показать другим ваш сетап
             </p>
           </div>
 
           {/* Download Card */}
-          <div className="card p-6">
-            <h3 className="mb-4 font-semibold text-slate-100">
+          <div className="card p-6 bg-white">
+            <h3 className="mb-4 font-semibold text-gray-900">
               Экспортировать карточку
             </h3>
             <button
@@ -199,7 +199,7 @@ export default function ProfilePage() {
               <Download className="h-4 w-4" />
               Скачать PNG
             </button>
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-gray-500">
               Сохраните карточку профиля как изображение
             </p>
           </div>
@@ -207,19 +207,19 @@ export default function ProfilePage() {
 
         {/* Stats Cards */}
         <div className="space-y-4">
-          <h3 className="text-xl font-bold text-slate-100">Дополнительная информация</h3>
+          <h3 className="text-xl font-bold text-gray-900">Дополнительная информация</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="card p-6">
-              <p className="text-sm text-slate-400 mb-2">Статус аккаунта</p>
-              <p className="text-lg font-semibold text-slate-100">
+            <div className="card p-6 bg-white">
+              <p className="text-sm text-gray-600 mb-2">Статус аккаунта</p>
+              <p className="text-lg font-semibold text-gray-900">
                 {profile.onboarding_completed ? '✓ Активный' : 'Неполный'}
               </p>
             </div>
 
-            <div className="card p-6">
-              <p className="text-sm text-slate-400 mb-2">Уровень профессионализма</p>
-              <p className="text-lg font-semibold text-slate-100">
+            <div className="card p-6 bg-white">
+              <p className="text-sm text-gray-600 mb-2">Уровень профессионализма</p>
+              <p className="text-lg font-semibold text-gray-900">
                 {profile.level === 'beginner'
                   ? '🟢 Начинающий'
                   : profile.level === 'advanced'
@@ -228,9 +228,9 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            <div className="card p-6 sm:col-span-2">
-              <p className="text-sm text-slate-400 mb-2">О профиле</p>
-              <p className="text-slate-300">
+            <div className="card p-6 bg-white sm:col-span-2">
+              <p className="text-sm text-gray-600 mb-2">О профиле</p>
+              <p className="text-gray-700">
                 {profile.is_business
                   ? 'Вы зарегистрированы как коммерческое предприятие'
                   : 'Вы используете платформу как независимый творец'}
@@ -240,9 +240,9 @@ export default function ProfilePage() {
         </div>
 
         {/* Help Section */}
-        <div className="card border-slate-700 bg-slate-800/50 p-6">
-          <h3 className="mb-3 font-semibold text-slate-100">Советы</h3>
-          <ul className="space-y-2 text-sm text-slate-400">
+        <div className="card border border-gray-200 bg-gray-50 p-6">
+          <h3 className="mb-3 font-semibold text-gray-900">Советы</h3>
+          <ul className="space-y-2 text-sm text-gray-600">
             <li>
               ✓ Регулярно обновляйте список оборудования, чтобы получить
               актуальные рекомендации

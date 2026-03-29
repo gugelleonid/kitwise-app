@@ -42,48 +42,48 @@ export default function RecommendationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mb-4" />
-          <p className="text-slate-400">Загрузка рекомендаций...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4" />
+          <p className="text-gray-600">Загрузка рекомендаций...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Header */}
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold text-slate-100">Рекомендации</h1>
-          <p className="text-lg text-slate-400">
+          <h1 className="text-4xl font-bold text-gray-900">Рекомендации</h1>
+          <p className="text-lg text-gray-600">
             AI-подобранное оборудование для развития вашего сетапа
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="card p-6 border-red-500/30 bg-red-500/5">
-            <p className="text-sm text-red-400 mb-2">Обязательно</p>
-            <p className="text-3xl font-bold text-red-300">{priorityStats.high}</p>
-            <p className="text-xs text-red-400/60 mt-1">Must-Have приобретения</p>
+          <div className="card p-6 border border-rose-200 bg-rose-50">
+            <p className="text-sm text-rose-700 mb-2">Обязательно</p>
+            <p className="text-3xl font-bold text-rose-600">{priorityStats.high}</p>
+            <p className="text-xs text-rose-600/70 mt-1">Must-Have приобретения</p>
           </div>
 
-          <div className="card p-6 border-orange-500/30 bg-orange-500/5">
-            <p className="text-sm text-orange-400 mb-2">Профессиональный уровень</p>
-            <p className="text-3xl font-bold text-orange-300">
+          <div className="card p-6 border border-amber-200 bg-amber-50">
+            <p className="text-sm text-amber-700 mb-2">Профессиональный уровень</p>
+            <p className="text-3xl font-bold text-amber-600">
               {priorityStats.medium}
             </p>
-            <p className="text-xs text-orange-400/60 mt-1">Pro Level покупки</p>
+            <p className="text-xs text-amber-600/70 mt-1">Pro Level покупки</p>
           </div>
 
-          <div className="card p-6 border-yellow-500/30 bg-yellow-500/5">
-            <p className="text-sm text-yellow-400 mb-2">Оптимизация</p>
-            <p className="text-3xl font-bold text-yellow-300">
+          <div className="card p-6 border border-yellow-200 bg-yellow-50">
+            <p className="text-sm text-yellow-700 mb-2">Оптимизация</p>
+            <p className="text-3xl font-bold text-yellow-600">
               {priorityStats.low}
             </p>
-            <p className="text-xs text-yellow-400/60 mt-1">Улучшающие покупки</p>
+            <p className="text-xs text-yellow-600/70 mt-1">Улучшающие покупки</p>
           </div>
         </div>
 
@@ -94,7 +94,7 @@ export default function RecommendationsPage() {
             className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
               filter === 'all'
                 ? 'bg-gradient-accent text-white'
-                : 'border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
             }`}
           >
             Все ({recommendations.length})
@@ -104,8 +104,8 @@ export default function RecommendationsPage() {
             onClick={() => setFilter('high')}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
               filter === 'high'
-                ? 'bg-red-500 text-white'
-                : 'border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                ? 'bg-rose-500 text-white'
+                : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
             }`}
           >
             🔴 Обязательно ({priorityStats.high})
@@ -115,8 +115,8 @@ export default function RecommendationsPage() {
             onClick={() => setFilter('medium')}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
               filter === 'medium'
-                ? 'bg-orange-500 text-white'
-                : 'border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                ? 'bg-amber-500 text-white'
+                : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
             }`}
           >
             🟠 Pro Level ({priorityStats.medium})
@@ -127,7 +127,7 @@ export default function RecommendationsPage() {
             className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
               filter === 'low'
                 ? 'bg-yellow-500 text-white'
-                : 'border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
             }`}
           >
             🟡 Оптимизация ({priorityStats.low})
@@ -142,21 +142,21 @@ export default function RecommendationsPage() {
             ))}
           </div>
         ) : (
-          <div className="card p-12 text-center">
-            <Filter className="mx-auto mb-4 h-12 w-12 text-slate-600" />
-            <h3 className="text-lg font-semibold text-slate-100 mb-2">
+          <div className="card p-12 text-center bg-white">
+            <Filter className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Нет рекомендаций
             </h3>
-            <p className="text-slate-400">
+            <p className="text-gray-600">
               Выбранный фильтр не дал результатов. Попробуйте выбрать другой.
             </p>
           </div>
         )}
 
         {/* Info Section */}
-        <div className="card space-y-4 border-blue-500/30 bg-blue-500/5 p-6">
-          <h3 className="font-semibold text-blue-300">Как это работает?</h3>
-          <ul className="space-y-2 text-sm text-blue-200/80">
+        <div className="card space-y-4 border border-indigo-200 bg-indigo-50 p-6">
+          <h3 className="font-semibold text-indigo-900">Как это работает?</h3>
+          <ul className="space-y-2 text-sm text-indigo-700">
             <li>
               ✓ <strong>Обязательно (🔴)</strong> — критичное оборудование,
               которое нужно для профессиональной работы в вашей нише

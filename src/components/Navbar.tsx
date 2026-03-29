@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Camera, LayoutGrid, User, Menu, X } from 'lucide-react'
+import { Camera, LayoutGrid, User, Menu, X, Lightbulb } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Navbar() {
@@ -17,6 +17,7 @@ export default function Navbar() {
   const links = [
     { href: '/dashboard', label: 'Дашборд', icon: LayoutGrid },
     { href: '/board', label: 'Борд', icon: LayoutGrid },
+    { href: '/recommendations', label: 'Подбор', icon: Lightbulb },
     { href: '/profile', label: 'Профиль', icon: User },
   ]
 

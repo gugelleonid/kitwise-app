@@ -246,20 +246,20 @@ export default function DashboardPage() {
   const unlockedAchievements = userProgress?.achievements || []
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold gradient-text">Мой центр управления</h1>
-              <p className="mt-2 text-slate-400">
-                Выбрано направлений: <span className="font-semibold text-slate-100">{selectedNiches.length}</span>
+              <p className="mt-2 text-gray-600">
+                Выбрано направлений: <span className="font-semibold text-gray-900">{selectedNiches.length}</span>
               </p>
             </div>
             <a
               href="/board"
-              className="flex items-center gap-2 rounded-lg bg-gradient-accent px-6 py-3 font-semibold text-slate-950 transition-all hover:shadow-lg hover:shadow-purple-500/30"
+              className="flex items-center gap-2 rounded-lg bg-gradient-accent px-6 py-3 font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-500/30"
             >
               <Share2 className="h-4 w-4" />
               Поделиться
@@ -268,7 +268,7 @@ export default function DashboardPage() {
 
           {/* Niche Selection */}
           <div className="space-y-3">
-            <p className="text-sm font-medium text-slate-400">Выберите направления:</p>
+            <p className="text-sm font-medium text-gray-600">Выберите направления:</p>
             <div className="flex flex-wrap gap-2">
               {mockNiches.map((niche) => (
                 <button
@@ -276,8 +276,8 @@ export default function DashboardPage() {
                   onClick={() => toggleNiche(niche)}
                   className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                     selectedNiches.some((n) => n.id === niche.id)
-                      ? 'bg-gradient-accent text-slate-950'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      ? 'bg-gradient-accent text-white'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   <span className="text-base">{niche.icon}</span>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-slate-700">
+        <div className="border-b border-gray-200">
           <div className="flex gap-6">
             {(['equipment', 'stats', 'achievements'] as const).map((tab) => (
               <button
@@ -297,8 +297,8 @@ export default function DashboardPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`pb-4 text-sm font-medium transition-colors ${
                   activeTab === tab
-                    ? 'border-b-2 border-purple-500 text-purple-400'
-                    : 'text-slate-400 hover:text-slate-300'
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 {tab === 'equipment' && 'Оборудование'}
@@ -317,13 +317,13 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-4 lg:flex-row">
                 {/* Search */}
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Поиск оборудования..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-lg bg-slate-800 py-2 pl-10 pr-4 text-slate-100 placeholder-slate-600 outline-none transition-colors focus:bg-slate-800/80 focus:ring-2 focus:ring-purple-500"
+                    className="w-full rounded-lg bg-white border border-gray-200 py-2 pl-10 pr-4 text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                   />
                 </div>
 
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                 <select
                   value={selectedCategory || ''}
                   onChange={(e) => setSelectedCategory(e.target.value || null)}
-                  className="rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none transition-colors focus:ring-2 focus:ring-purple-500"
+                  className="rounded-lg bg-white border border-gray-200 px-4 py-2 text-gray-900 outline-none transition-colors focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                 >
                   <option value="">Все категории</option>
                   {allCategories.map((cat) => (
@@ -344,7 +344,7 @@ export default function DashboardPage() {
                 <select
                   value={selectedBrand || ''}
                   onChange={(e) => setSelectedBrand(e.target.value || null)}
-                  className="rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none transition-colors focus:ring-2 focus:ring-purple-500"
+                  className="rounded-lg bg-white border border-gray-200 px-4 py-2 text-gray-900 outline-none transition-colors focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                 >
                   <option value="">Все бренды</option>
                   {allBrands.map((brand) => (
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                 {/* Add Custom Button */}
                 <button
                   onClick={() => setShowCustomModal(true)}
-                  className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 font-medium text-slate-100 transition-all hover:bg-slate-700"
+                  className="flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-4 py-2 font-medium text-gray-900 transition-all hover:bg-gray-50"
                 >
                   <Plus className="h-4 w-4" />
                   Добавить своё
@@ -367,45 +367,45 @@ export default function DashboardPage() {
 
             {/* Custom Equipment Modal */}
             {showCustomModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <div className="card w-full max-w-lg space-y-6 p-6">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+                <div className="card w-full max-w-lg space-y-6 p-6 bg-white">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-slate-100">Добавить собственное оборудование</h2>
-                    <button onClick={() => setShowCustomModal(false)} className="text-slate-400 hover:text-slate-200">
+                    <h2 className="text-2xl font-bold text-gray-900">Добавить собственное оборудование</h2>
+                    <button onClick={() => setShowCustomModal(false)} className="text-gray-400 hover:text-gray-600">
                       <X className="h-6 w-6" />
                     </button>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Название</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Название</label>
                       <input
                         type="text"
                         value={customForm.name}
                         onChange={(e) => setCustomForm({ ...customForm, name: e.target.value })}
-                        className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                         placeholder="Ваше оборудование"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Бренд</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Бренд</label>
                       <input
                         type="text"
                         value={customForm.brand}
                         onChange={(e) => setCustomForm({ ...customForm, brand: e.target.value })}
-                        className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                         placeholder="Бренд"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Категория</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Категория</label>
                         <select
                           value={customForm.category}
                           onChange={(e) => setCustomForm({ ...customForm, category: e.target.value })}
-                          className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                         >
                           <option value="">Выберите</option>
                           {allCategories.map((cat) => (
@@ -417,12 +417,12 @@ export default function DashboardPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Подкатегория</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Подкатегория</label>
                         <input
                           type="text"
                           value={customForm.subcategory}
                           onChange={(e) => setCustomForm({ ...customForm, subcategory: e.target.value })}
-                          className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                           placeholder="Подкатегория"
                         />
                       </div>
@@ -430,30 +430,30 @@ export default function DashboardPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Цена ($)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Цена ($)</label>
                         <input
                           type="number"
                           value={customForm.price}
                           onChange={(e) => setCustomForm({ ...customForm, price: parseInt(e.target.value) || 0 })}
-                          className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                           placeholder="0"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Количество</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Количество</label>
                         <input
                           type="number"
                           value={customForm.quantity}
                           onChange={(e) => setCustomForm({ ...customForm, quantity: parseInt(e.target.value) || 1 })}
-                          className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                           placeholder="1"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Статус</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Статус</label>
                       <select
                         value={customForm.status}
                         onChange={(e) =>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
                             status: e.target.value as 'owned' | 'planned' | 'dream',
                           })
                         }
-                        className="w-full rounded-lg bg-slate-800 px-4 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-gray-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10"
                       >
                         <option value="owned">Есть</option>
                         <option value="planned">План</option>
@@ -471,16 +471,16 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-4 border-t border-slate-700">
+                  <div className="flex gap-4 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => setShowCustomModal(false)}
-                      className="flex-1 rounded-lg bg-slate-800 px-4 py-2 font-medium text-slate-100 transition-colors hover:bg-slate-700"
+                      className="flex-1 rounded-lg bg-gray-100 px-4 py-2 font-medium text-gray-900 transition-colors hover:bg-gray-200"
                     >
                       Отмена
                     </button>
                     <button
                       onClick={handleAddCustomEquipment}
-                      className="flex-1 rounded-lg bg-gradient-accent px-4 py-2 font-medium text-slate-950 transition-all hover:shadow-lg"
+                      className="flex-1 rounded-lg bg-gradient-accent px-4 py-2 font-medium text-white transition-all hover:shadow-lg"
                     >
                       Добавить
                     </button>
@@ -492,7 +492,7 @@ export default function DashboardPage() {
             {/* Equipment Grid */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-100">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {filteredEquipment.length > 0 ? `Каталог (${filteredEquipment.length})` : 'Оборудование в каталоге'}
                 </h2>
               </div>
@@ -514,8 +514,8 @@ export default function DashboardPage() {
                   })}
                 </div>
               ) : (
-                <div className="card p-8 text-center">
-                  <p className="text-slate-400">Оборудование не найдено</p>
+                <div className="card p-8 text-center bg-white">
+                  <p className="text-gray-500">Оборудование не найдено</p>
                 </div>
               )}
             </div>
@@ -523,7 +523,7 @@ export default function DashboardPage() {
             {/* My Equipment */}
             {userEquipment.length > 0 && (
               <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-slate-100">Моё оборудование ({userEquipment.length})</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Моё оборудование ({userEquipment.length})</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {userEquipment.map((ue) => {
@@ -544,15 +544,15 @@ export default function DashboardPage() {
                     }
                     // For custom equipment
                     return (
-                      <div key={ue.id} className="card p-4 space-y-3">
+                      <div key={ue.id} className="card p-4 space-y-3 bg-white">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-slate-100">{ue.custom_name}</h3>
-                            <p className="text-xs text-slate-500">{ue.category}</p>
+                            <h3 className="font-semibold text-gray-900">{ue.custom_name}</h3>
+                            <p className="text-xs text-gray-400">{ue.category}</p>
                           </div>
                           <button
                             onClick={() => handleRemoveEquipment(ue.id)}
-                            className="text-slate-600 hover:text-red-400 transition-colors"
+                            className="text-gray-400 hover:text-rose-500 transition-colors"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -565,14 +565,14 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleQuantityChange(ue.equipment_id, Math.max(1, ue.quantity - 1))}
-                            className="w-5 h-5 flex items-center justify-center rounded bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 text-xs"
+                            className="w-5 h-5 flex items-center justify-center rounded bg-gray-100 text-gray-500 hover:text-gray-900 hover:bg-gray-200 text-xs"
                           >
                             −
                           </button>
-                          <span className="text-xs font-bold text-slate-200 w-4 text-center">{ue.quantity}</span>
+                          <span className="text-xs font-bold text-gray-900 w-4 text-center">{ue.quantity}</span>
                           <button
                             onClick={() => handleQuantityChange(ue.equipment_id, ue.quantity + 1)}
-                            className="w-5 h-5 flex items-center justify-center rounded bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 text-xs"
+                            className="w-5 h-5 flex items-center justify-center rounded bg-gray-100 text-gray-500 hover:text-gray-900 hover:bg-gray-200 text-xs"
                           >
                             +
                           </button>
@@ -591,10 +591,10 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-3">
               {/* Setup Score */}
-              <div className="card flex flex-col items-center justify-center p-8">
-                <h2 className="mb-6 text-xl font-semibold text-slate-100">Готовность сетапа</h2>
+              <div className="card flex flex-col items-center justify-center p-8 bg-white">
+                <h2 className="mb-6 text-xl font-semibold text-gray-900">Готовность сетапа</h2>
                 <ProgressRing percentage={setupScore} size={200} />
-                <p className="mt-6 text-center text-sm text-slate-400">
+                <p className="mt-6 text-center text-sm text-gray-600">
                   {setupScore < 30 && 'Начинающий уровень'}
                   {setupScore >= 30 && setupScore < 70 && 'Средний уровень подготовки'}
                   {setupScore >= 70 && 'Высокий уровень подготовки'}
@@ -602,24 +602,24 @@ export default function DashboardPage() {
               </div>
 
               {/* Level & Progress */}
-              <div className="card p-6">
-                <h2 className="mb-6 text-xl font-semibold text-slate-100">Уровень и опыт</h2>
+              <div className="card p-6 bg-white">
+                <h2 className="mb-6 text-xl font-semibold text-gray-900">Уровень и опыт</h2>
 
                 {userProgress && (
                   <div className="space-y-6">
                     <div className="text-center">
                       <div className="text-4xl font-bold gradient-text">{userProgress.level}</div>
-                      <div className="text-sm text-slate-400 mt-1">{userProgress.title}</div>
+                      <div className="text-sm text-gray-600 mt-1">{userProgress.title}</div>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs text-slate-400">
+                      <div className="flex justify-between text-xs text-gray-600">
                         <span>Опыт в уровне</span>
                         <span>
                           {userProgress.xp} / {userProgress.xpToNext}
                         </span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                      <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                         <div
                           className="h-full bg-gradient-accent transition-all duration-300"
                           style={{
@@ -633,37 +633,37 @@ export default function DashboardPage() {
               </div>
 
               {/* Equipment Counts */}
-              <div className="card p-6">
-                <h2 className="mb-6 text-xl font-semibold text-slate-100">Статистика</h2>
+              <div className="card p-6 bg-white">
+                <h2 className="mb-6 text-xl font-semibold text-gray-900">Статистика</h2>
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Всего оборудования</span>
-                    <span className="font-semibold text-slate-100">{userEquipment.length}</span>
+                    <span className="text-sm text-gray-600">Всего оборудования</span>
+                    <span className="font-semibold text-gray-900">{userEquipment.length}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-gray-600">
                       <span className="text-lg">🟢</span> Есть
                     </span>
-                    <span className="font-semibold text-green-400">{ownedCount}</span>
+                    <span className="font-semibold text-emerald-500">{ownedCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-gray-600">
                       <span className="text-lg">🟡</span> План
                     </span>
-                    <span className="font-semibold text-yellow-400">{plannedCount}</span>
+                    <span className="font-semibold text-amber-500">{plannedCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-gray-600">
                       <span className="text-lg">⚫</span> Мечта
                     </span>
                     <span className="font-semibold text-gray-400">{dreamCount}</span>
                   </div>
 
-                  <div className="border-t border-slate-700 pt-4">
+                  <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-400">Примерная стоимость</span>
-                      <span className="font-semibold text-slate-100">${totalValue.toLocaleString()}</span>
+                      <span className="text-sm text-gray-600">Примерная стоимость</span>
+                      <span className="font-semibold text-gray-900">${totalValue.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -672,15 +672,15 @@ export default function DashboardPage() {
 
             {/* Radar Chart */}
             {radarData.length > 0 && (
-              <div className="card p-6">
-                <h2 className="mb-6 text-xl font-semibold text-slate-100">Готовность по категориям</h2>
+              <div className="card p-6 bg-white">
+                <h2 className="mb-6 text-xl font-semibold text-gray-900">Готовность по категориям</h2>
                 <ResponsiveContainer width="100%" height={400}>
                   <RadarChart data={radarData}>
-                    <PolarGrid stroke="#334155" />
-                    <PolarAngleAxis dataKey="category" stroke="#94a3b8" style={{ fontSize: '12px' }} />
-                    <PolarRadiusAxis stroke="#94a3b8" />
-                    <Radar name="Есть" dataKey="Есть" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                    <Radar name="Нужно" dataKey="Нужно" stroke="#a855f7" fill="#a855f7" fillOpacity={0.3} />
+                    <PolarGrid stroke="#e5e7eb" />
+                    <PolarAngleAxis dataKey="category" stroke="#9ca3af" style={{ fontSize: '12px' }} />
+                    <PolarRadiusAxis stroke="#9ca3af" />
+                    <Radar name="Есть" dataKey="Есть" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.6} />
+                    <Radar name="Нужно" dataKey="Нужно" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.3} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -692,8 +692,8 @@ export default function DashboardPage() {
         {activeTab === 'achievements' && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-slate-100">Достижения</h2>
-              <p className="text-slate-400">
+              <h2 className="text-2xl font-bold text-gray-900">Достижения</h2>
+              <p className="text-gray-600">
                 Разблокировано: {unlockedAchievements.length} / {achievements.length}
               </p>
             </div>
@@ -707,21 +707,21 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={achievement.id}
-                    className={`card p-4 border transition-all ${isUnlocked ? `${colors.border} ${colors.glow}` : 'border-slate-700'}`}
+                    className={`card p-4 border transition-all bg-white ${isUnlocked ? `${colors.border} ${colors.glow}` : 'border-gray-200'}`}
                   >
                     <div className={`inline-block text-4xl mb-3 ${isUnlocked ? '' : 'opacity-50'}`}>
                       {achievement.icon}
                     </div>
 
-                    <h3 className={`font-semibold mb-2 ${isUnlocked ? 'text-slate-100' : 'text-slate-500'}`}>
+                    <h3 className={`font-semibold mb-2 ${isUnlocked ? 'text-gray-900' : 'text-gray-400'}`}>
                       {achievement.title}
                     </h3>
 
-                    <p className={`text-sm mb-3 ${isUnlocked ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p className={`text-sm mb-3 ${isUnlocked ? 'text-gray-600' : 'text-gray-400'}`}>
                       {achievement.description}
                     </p>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-700">
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                       <span className={`text-xs font-medium px-2 py-1 rounded ${colors.bg} ${colors.text}`}>
                         {achievement.rarity === 'common' && 'Обычное'}
                         {achievement.rarity === 'rare' && 'Редкое'}
@@ -729,12 +729,12 @@ export default function DashboardPage() {
                         {achievement.rarity === 'legendary' && 'Легендарное'}
                       </span>
 
-                      <span className={`text-xs font-semibold ${isUnlocked ? 'text-amber-400' : 'text-slate-600'}`}>
+                      <span className={`text-xs font-semibold ${isUnlocked ? 'text-amber-500' : 'text-gray-400'}`}>
                         +{achievement.xp} XP
                       </span>
                     </div>
 
-                    {!isUnlocked && <div className="mt-2 text-xs text-slate-600">Не разблокировано</div>}
+                    {!isUnlocked && <div className="mt-2 text-xs text-gray-400">Не разблокировано</div>}
                   </div>
                 )
               })}
