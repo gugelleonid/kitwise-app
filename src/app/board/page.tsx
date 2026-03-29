@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { Search, Plus, Trash2, Check, Lightbulb, Grid3x3, List, Zap, Trophy, Heart, Clipboard } from 'lucide-react'
+import { Search, Plus, Trash2, Check, Lightbulb, LayoutGrid, List, Zap, Trophy, Heart, Clipboard } from 'lucide-react'
 import {
   initializeGameState,
   processAction,
@@ -628,7 +628,7 @@ export default function BoardPage() {
             {/* My Board */}
             <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Grid3x3 className="w-5 h-5" />
+                <LayoutGrid className="w-5 h-5" />
                 Мой сетап ({userEquipment.length})
               </h3>
 
