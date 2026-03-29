@@ -461,7 +461,7 @@ function CelebrationOverlay({
           borderRadius: '16px',
           background: 'linear-gradient(135deg, rgba(0,229,255,0.1) 0%, rgba(168,85,247,0.1) 100%)',
           border: '2px solid rgba(0,229,255,0.5)',
-          backdrop: 'blur(12px)',
+          backdropFilter: 'blur(12px)',
           textAlign: 'center',
           animation: 'celebrate-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         }}
