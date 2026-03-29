@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
   // Generate radar chart data
   useEffect(() => {
-    const categories = ['Camera', 'Lens', 'Lighting', 'Support', 'Storage']
+    const categories = ['Camera', 'Lens', 'Flash', 'Lighting', 'Audio', 'Support', 'Storage', 'Drone', 'Computer']
     const data = categories.map((category) => {
       const userOwned = userEquipment.filter(
         (e) => e.category === category && e.status === 'owned'

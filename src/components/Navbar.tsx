@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Camera, Home, Zap, User, Menu, X } from 'lucide-react'
+import { Camera, Home, Zap, User, Menu, X, LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Navbar() {
@@ -12,6 +12,7 @@ export default function Navbar() {
   const links = [
     { href: '/dashboard', label: 'Дашборд', icon: Home },
     { href: '/recommendations', label: 'Рекомендации', icon: Zap },
+    { href: '/board', label: 'Борд', icon: LayoutGrid },
     { href: '/profile', label: 'Профиль', icon: User },
   ]
 

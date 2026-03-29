@@ -6,9 +6,10 @@ import NicheCard from '@/components/NicheCard'
 import EquipmentCard from '@/components/EquipmentCard'
 import ProgressRing from '@/components/ProgressRing'
 import { Niche, EquipmentCatalog, UserEquipment } from '@/lib/types'
-import { mockNiches, mockEquipmentCatalog } from '@/lib/mockData'
+import { mockNiches, mockEquipmentCatalog, categoryIcons } from '@/lib/mockData'
 import { supabase } from '@/lib/supabase'
-import { ChevronRight, ChevronLeft } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Search, LayoutGrid } from 'lucide-react'
+import Link from 'next/link'
 
 type OnboardingStep = 'niche' | 'equipment' | 'results'
 
@@ -23,6 +24,11 @@ export default function OnboardingPage() {
   )
   const [loading, setLoading] = useState(false)
   const [setupScore, setSetupScore] = useState(0)
+
+  // Filters
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [brandFilter, setBrandFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Load niches from Supabase or use mock data
   useEffect(() => {
@@ -52,7 +58,7 @@ export default function OnboardingPage() {
         const { data, error } = await supabase
           .from('equipment_catalog')
           .select('*')
-          .limit(50)
+          .limit(200)
 
         if (error) throw error
         if (data && data.length > 0) {
@@ -65,6 +71,29 @@ export default function OnboardingPage() {
 
     loadEquipment()
   }, [])
+
+  // Get unique categories and brands
+  const categories = [...new Set(allEquipment.map(e => e.category))].sort()
+  const brands = [...new Set(
+    allEquipment
+      .filter(e => categoryFilter === 'all' || e.category === categoryFilter)
+      .map(e => e.brand)
+  )].sort()
+
+  // Filtered equipment
+  const filteredEquipment = allEquipment.filter(e => {
+    if (categoryFilter !== 'all' && e.category !== categoryFilter) return false
+    if (brandFilter !== 'all' && e.brand !== brandFilter) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return (
+        e.name.toLowerCase().includes(q) ||
+        e.brand.toLowerCase().includes(q) ||
+        e.subcategory.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
 
   const handleNicheSelect = (niche: Niche) => {
     setSelectedNiche(niche)
@@ -81,6 +110,7 @@ export default function OnboardingPage() {
           e.equipment_id === equipmentId ? { ...e, status } : e
         )
       }
+      const equipment = allEquipment.find(e => e.id === equipmentId)
       return [
         ...prev,
         {
@@ -88,7 +118,7 @@ export default function OnboardingPage() {
           user_id: 'demo-user',
           equipment_id: equipmentId,
           custom_name: null,
-          category: '',
+          category: equipment?.category || '',
           status,
           acquired_at: null,
           notes: null,
@@ -137,7 +167,7 @@ export default function OnboardingPage() {
       }
       localStorage.setItem('kitwise-onboarding', JSON.stringify(onboardingData))
 
-      // Try to save to Supabase (will fail in demo mode but that's ok)
+      // Try to save to Supabase
       try {
         await supabase.from('profiles').insert({
           id: 'demo-user',
@@ -162,7 +192,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         {/* Progress Bar */}
         <div className="mb-12">
           <div className="mb-4 flex items-center justify-between">
@@ -232,21 +262,105 @@ export default function OnboardingPage() {
 
         {/* Step 2: Equipment Selection */}
         {step === 'equipment' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div>
               <p className="text-lg text-slate-400 mb-4">
-                Отметьте оборудование, которое у вас уже есть. Кликайте на
-                карточку, чтобы переключать статусы.
+                Найдите и отметьте оборудование, которое у вас есть или планируете купить.
               </p>
-              <div className="card p-4 bg-blue-500/10 border-blue-500/30">
-                <p className="text-sm text-blue-300">
-                  Найдено оборудования: {allEquipment.length} единиц
-                </p>
-              </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {allEquipment.map((equipment) => {
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Поиск по названию, бренду..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl bg-slate-800/50 border border-slate-700 pl-10 pr-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+            </div>
+
+            {/* Category Filters */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { setCategoryFilter('all'); setBrandFilter('all') }}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  categoryFilter === 'all'
+                    ? 'bg-gradient-accent text-white'
+                    : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                Все ({allEquipment.length})
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => { setCategoryFilter(cat); setBrandFilter('all') }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all flex items-center gap-1 ${
+                    categoryFilter === cat
+                      ? 'bg-purple-500 text-white'
+                      : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                  }`}
+                >
+                  <span>{categoryIcons[cat] || '📦'}</span>
+                  {cat === 'Camera' ? 'Камеры' :
+                   cat === 'Lens' ? 'Объективы' :
+                   cat === 'Flash' ? 'Вспышки' :
+                   cat === 'Lighting' ? 'Свет' :
+                   cat === 'Audio' ? 'Аудио' :
+                   cat === 'Support' ? 'Штативы' :
+                   cat === 'Storage' ? 'Хранение' :
+                   cat === 'Drone' ? 'Дроны' :
+                   cat === 'Computer' ? 'Apple' :
+                   cat === 'Bag' ? 'Сумки' :
+                   cat === 'Accessory' ? 'Аксессуары' : cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Brand Filters (show only when category selected) */}
+            {categoryFilter !== 'all' && brands.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setBrandFilter('all')}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                    brandFilter === 'all'
+                      ? 'bg-cyan-500 text-white'
+                      : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                  }`}
+                >
+                  Все бренды
+                </button>
+                {brands.map(brand => (
+                  <button
+                    key={brand}
+                    onClick={() => setBrandFilter(brand)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                      brandFilter === brand
+                        ? 'bg-cyan-500 text-white'
+                        : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Results count */}
+            <div className="card p-3 bg-blue-500/10 border-blue-500/30 flex items-center justify-between">
+              <p className="text-sm text-blue-300">
+                Показано: {filteredEquipment.length} из {allEquipment.length}
+              </p>
+              <p className="text-sm text-emerald-400 font-semibold">
+                Выбрано: {selectedEquipment.length}
+              </p>
+            </div>
+
+            {/* Equipment Grid */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredEquipment.map((equipment) => {
                 const userEquip = selectedEquipment.find(
                   (e) => e.equipment_id === equipment.id
                 )
@@ -263,12 +377,11 @@ export default function OnboardingPage() {
               })}
             </div>
 
-            <div className="mt-8 rounded-lg bg-slate-800/50 p-6">
-              <p className="text-sm text-slate-400 mb-2">Выбрано оборудования</p>
-              <p className="text-3xl font-bold text-slate-100">
-                {selectedEquipment.length} единиц
-              </p>
-            </div>
+            {filteredEquipment.length === 0 && (
+              <div className="card p-8 text-center">
+                <p className="text-slate-400">Ничего не найдено. Попробуйте другой фильтр или поиск.</p>
+              </div>
+            )}
 
             <div className="flex justify-between pt-8">
               <button
@@ -321,7 +434,7 @@ export default function OnboardingPage() {
                     'Рекомендуем сначала собрать базовое оборудование'}
                   {setupScore >= 30 &&
                     setupScore < 70 &&
-                    'Хороший прогресс! Следующие покупки помогут вам уровень'}
+                    'Хороший прогресс! Следующие покупки помогут вам выйти на новый уровень'}
                   {setupScore >= 70 &&
                     'Отличный сетап! Рекомендации помогут вам оптимизировать'}
                 </p>
@@ -355,10 +468,17 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="flex justify-center pt-8">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
               <button onClick={handleContinue} className="btn-primary">
                 Перейти на дашборд
               </button>
+              <Link
+                href="/board"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold hover:opacity-90 transition-opacity"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Смотреть борд
+              </Link>
             </div>
           </div>
         )}
