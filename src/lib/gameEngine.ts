@@ -169,19 +169,30 @@ export const getNicheEquipmentBonus = (
   catalogEquipment: EquipmentCatalog[]
 ): number => {
   const nicheMap = nicheEquipmentMapInstance.get(nicheId)
-  if (!nicheMap) return 0
+  if (!nicheMap) return 5
 
-  // Check all tiers
+  // Find the equipment's category from catalog
+  const equipment = catalogEquipment.find(e => e.id === equipmentId)
+  if (!equipment) return 5
+
+  // Check all tiers — match by equipment_id first, then by category
   const allRequirements = [
     ...nicheMap.requirements.must_have,
     ...nicheMap.requirements.pro_level,
     ...nicheMap.requirements.optimization,
   ]
 
-  const matched = allRequirements.find((req) => req.equipment_id === equipmentId)
-  if (!matched) return 0
+  // First try exact equipment_id match
+  const exactMatch = allRequirements.find((req) => req.equipment_id === equipmentId)
+  if (exactMatch) return getBasePoints(exactMatch.tier)
 
-  return getBasePoints(matched.tier)
+  // Then try category match (for requirements with equipment_id: null)
+  const categoryMatch = allRequirements.find(
+    (req) => !req.equipment_id && req.category === equipment.category
+  )
+  if (categoryMatch) return getBasePoints(categoryMatch.tier)
+
+  return 5 // Base points for any equipment not in niche requirements
 }
 
 /**
@@ -229,7 +240,8 @@ const checkCategoryCompletion = (
   if (!nicheMap) return []
 
   const completedCategories: string[] = []
-  const userEquipmentIds = userEquipment.map((e) => e.equipment_id)
+  const userEquipmentIds = new Set(userEquipment.map((e) => e.equipment_id))
+  const userCategories = new Set(userEquipment.map((e) => e.category))
 
   // Check each category
   const allRequirements = [
@@ -248,9 +260,10 @@ const checkCategoryCompletion = (
     }
     const counts = categoryCounts.get(category)!
     counts.total += 1
+    // Match by exact equipment_id or by category
     if (
-      req.equipment_id &&
-      userEquipmentIds.includes(req.equipment_id)
+      (req.equipment_id && userEquipmentIds.has(req.equipment_id)) ||
+      (!req.equipment_id && userCategories.has(req.category))
     ) {
       counts.owned += 1
     }
@@ -279,6 +292,13 @@ export const calculateSetupCompletion = (
   if (!nicheMap) return 0
 
   const userEquipmentIds = new Set(userEquipment.map((e) => e.equipment_id))
+  const userCategories = new Set(userEquipment.map((e) => e.category))
+
+  // Helper: check if a requirement is satisfied (by exact ID or by category)
+  const isReqSatisfied = (r: NicheRequirement): boolean => {
+    if (r.equipment_id) return userEquipmentIds.has(r.equipment_id)
+    return userCategories.has(r.category)
+  }
 
   // Weight: must_have = 50%, pro_level = 30%, optimization = 20%
   const mustHaveReqs = nicheMap.requirements.must_have
@@ -289,9 +309,7 @@ export const calculateSetupCompletion = (
   let maxScore = 0
 
   // Must have (highest weight)
-  const mustHaveCompleted = mustHaveReqs.filter(
-    (r) => r.equipment_id && userEquipmentIds.has(r.equipment_id)
-  ).length
+  const mustHaveCompleted = mustHaveReqs.filter(isReqSatisfied).length
   const mustHavePercent = mustHaveReqs.length > 0
     ? (mustHaveCompleted / mustHaveReqs.length) * 100
     : 0
@@ -299,9 +317,7 @@ export const calculateSetupCompletion = (
   maxScore += 50
 
   // Pro level (medium weight)
-  const proLevelCompleted = proLevelReqs.filter(
-    (r) => r.equipment_id && userEquipmentIds.has(r.equipment_id)
-  ).length
+  const proLevelCompleted = proLevelReqs.filter(isReqSatisfied).length
   const proLevelPercent = proLevelReqs.length > 0
     ? (proLevelCompleted / proLevelReqs.length) * 100
     : 0
@@ -309,9 +325,7 @@ export const calculateSetupCompletion = (
   maxScore += 30
 
   // Optimization (lowest weight)
-  const optimizationCompleted = optimizationReqs.filter(
-    (r) => r.equipment_id && userEquipmentIds.has(r.equipment_id)
-  ).length
+  const optimizationCompleted = optimizationReqs.filter(isReqSatisfied).length
   const optimizationPercent = optimizationReqs.length > 0
     ? (optimizationCompleted / optimizationReqs.length) * 100
     : 0
