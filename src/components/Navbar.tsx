@@ -9,6 +9,11 @@ export default function Navbar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  // Hide navbar on home page
+  if (pathname === '/') {
+    return null
+  }
+
   const links = [
     { href: '/dashboard', label: 'Дашборд', icon: Home },
     { href: '/recommendations', label: 'Рекомендации', icon: Zap },
