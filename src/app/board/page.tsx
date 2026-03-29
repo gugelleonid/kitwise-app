@@ -242,55 +242,77 @@ export default function BoardPage() {
   }, [addEquipment])
 
   // --- Export card as image ---
-  const handleExport = useCallback(async () => {
-    if (!exportRef.current) return
-    try {
-      const { default: html2canvas } = await import('html2canvas')
-      const canvas = await html2canvas(exportRef.current, {
-        scale: 2, backgroundColor: null, useCORS: true,
+  const handleExport = useCallback(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1200
+    canvas.height = 900
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Gradient background
+    const grad = ctx.createLinearGradient(0, 0, 1200, 900)
+    grad.addColorStop(0, '#4f46e5')
+    grad.addColorStop(0.5, '#7c3aed')
+    grad.addColorStop(1, '#a855f7')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 1200, 900)
+
+    // Header
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+    ctx.font = '600 18px system-ui, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('KITWISE', 600, 60)
+
+    ctx.fillStyle = '#fff'
+    ctx.font = 'bold 42px system-ui, -apple-system, sans-serif'
+    ctx.fillText(`${selectedNiche?.icon || ''} ${selectedNiche?.name || ''}`, 600, 110)
+
+    // Stats bar
+    ctx.font = 'bold 28px system-ui'
+    ctx.fillText(`💰 $${totalPrice.toLocaleString()}`, 300, 175)
+    ctx.fillText(`📦 ${userEquipment.length} единиц`, 600, 175)
+    ctx.fillText(`⚡ ${Math.round(setupCompletion)}% сетап`, 900, 175)
+
+    // Equipment list
+    ctx.textAlign = 'left'
+    let y = 230
+    const categories = Object.entries(boardGrouped)
+    categories.forEach(([category, items]) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
+      ctx.font = 'bold 16px system-ui'
+      ctx.fillText(`${categoryIcons[category] || '📦'} ${(CATEGORY_LABELS[category] || category).toUpperCase()}`, 60, y)
+      y += 30
+      items.forEach(({ eq, catalog }) => {
+        ctx.fillStyle = '#fff'
+        ctx.font = '500 18px system-ui'
+        const statusEmoji = STATUS_CONFIG[eq.status].emoji
+        ctx.fillText(`${statusEmoji} ${catalog.name}`, 80, y)
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+        ctx.font = '16px system-ui'
+        ctx.textAlign = 'right'
+        ctx.fillText(catalog.brand, 1140, y)
+        ctx.textAlign = 'left'
+        y += 28
       })
-      const link = document.createElement('a')
-      link.href = canvas.toDataURL('image/png')
-      link.download = `kitwise-setup-${Date.now()}.png`
-      link.click()
-    } catch {
-      // Fallback: canvas manual draw
-      const canvas = document.createElement('canvas')
-      canvas.width = 1200
-      canvas.height = 800
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
+      y += 10
+    })
 
-      // Gradient background
-      const grad = ctx.createLinearGradient(0, 0, 1200, 800)
-      grad.addColorStop(0, '#4f46e5')
-      grad.addColorStop(1, '#7c3aed')
-      ctx.fillStyle = grad
-      ctx.roundRect(0, 0, 1200, 800, 24)
-      ctx.fill()
+    // Fun quote at bottom
+    const quote = MOTIVATIONAL_QUOTES[0].replace('$XXX', `$${totalPrice.toLocaleString()}`)
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'
+    ctx.font = 'italic 20px system-ui'
+    ctx.textAlign = 'center'
+    ctx.fillText(`"${quote}"`, 600, 840)
 
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 48px system-ui'
-      ctx.textAlign = 'center'
-      ctx.fillText('KitWise', 600, 80)
-      ctx.font = '28px system-ui'
-      ctx.fillText(selectedNiche?.name || '', 600, 130)
-      ctx.font = 'bold 64px system-ui'
-      ctx.fillText(`$${totalPrice.toLocaleString()}`, 600, 250)
-      ctx.font = '24px system-ui'
-      ctx.fillText(`${userEquipment.length} единиц оборудования`, 600, 300)
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+    ctx.font = '14px system-ui'
+    ctx.fillText('kitwise-app.vercel.app', 600, 875)
 
-      const quote = MOTIVATIONAL_QUOTES[0].replace('$XXX', `$${totalPrice.toLocaleString()}`)
-      ctx.font = 'italic 22px system-ui'
-      ctx.fillStyle = 'rgba(255,255,255,0.8)'
-      ctx.fillText(`"${quote}"`, 600, 750)
-
-      const link = document.createElement('a')
-      link.href = canvas.toDataURL('image/png')
-      link.download = `kitwise-setup-${Date.now()}.png`
-      link.click()
-    }
-  }, [selectedNiche, totalPrice, userEquipment.length])
+    const link = document.createElement('a')
+    link.href = canvas.toDataURL('image/png')
+    link.download = `kitwise-setup-${Date.now()}.png`
+    link.click()
+  }, [selectedNiche, totalPrice, userEquipment.length, boardGrouped, setupCompletion])
 
   // =====================================================
   // STEP 1: NICHE SELECTION
