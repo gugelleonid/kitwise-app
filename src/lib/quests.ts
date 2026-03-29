@@ -189,9 +189,9 @@ const BONUS_QUESTS: Quest[] = [
     icon: '🎙️',
     type: 'bonus',
     xpReward: 45,
-    condition: (state) => state.hasAudio && (state.equipmentByCategory['audio'] || 0) >= 2,
+    condition: (state) => state.hasAudio && (state.equipmentByCategory['Audio'] || 0) >= 2,
     progress: (state) => ({
-      current: Math.min(state.equipmentByCategory['audio'] || 0, 2),
+      current: Math.min(state.equipmentByCategory['Audio'] || 0, 2),
       target: 2
     })
   },
@@ -202,9 +202,9 @@ const BONUS_QUESTS: Quest[] = [
     icon: '💡',
     type: 'bonus',
     xpReward: 55,
-    condition: (state) => state.hasLighting && (state.equipmentByCategory['lighting'] || 0) >= 3,
+    condition: (state) => state.hasLighting && (state.equipmentByCategory['Lighting'] || 0) >= 3,
     progress: (state) => ({
-      current: Math.min(state.equipmentByCategory['lighting'] || 0, 3),
+      current: Math.min(state.equipmentByCategory['Lighting'] || 0, 3),
       target: 3
     })
   },
@@ -215,9 +215,9 @@ const BONUS_QUESTS: Quest[] = [
     icon: '🚁',
     type: 'bonus',
     xpReward: 60,
-    condition: (state) => (state.equipmentByCategory['drones'] || 0) >= 1,
+    condition: (state) => (state.equipmentByCategory['Drone'] || 0) >= 1,
     progress: (state) => ({
-      current: Math.min(state.equipmentByCategory['drones'] || 0, 1),
+      current: Math.min(state.equipmentByCategory['Drone'] || 0, 1),
       target: 1
     })
   },

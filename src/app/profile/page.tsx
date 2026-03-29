@@ -49,31 +49,31 @@ export default function ProfilePage() {
     if (ctx) {
       // Background gradient
       const gradient = ctx.createLinearGradient(0, 0, 600, 400)
-      gradient.addColorStop(0, '#1a1f2e')
-      gradient.addColorStop(1, '#2a1a3e')
+      gradient.addColorStop(0, '#eef2ff')
+      gradient.addColorStop(1, '#e0e7ff')
       ctx.fillStyle = gradient
       ctx.fillRect(0, 0, 600, 400)
 
       // Content
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = '#111827'
       ctx.font = 'bold 32px Arial'
       ctx.textAlign = 'center'
       ctx.fillText(profile.full_name, 300, 60)
 
       ctx.font = '18px Arial'
-      ctx.fillStyle = '#a8a8a8'
+      ctx.fillStyle = '#6b7280'
       ctx.fillText(niche?.name || 'Фотография', 300, 100)
 
       ctx.font = 'bold 48px Arial'
-      ctx.fillStyle = '#a855f7'
+      ctx.fillStyle = '#4f46e5'
       ctx.fillText(profile.setup_score + '%', 300, 200)
 
       ctx.font = '16px Arial'
-      ctx.fillStyle = '#a8a8a8'
+      ctx.fillStyle = '#6b7280'
       ctx.fillText('Setup Score', 300, 240)
 
       ctx.font = '14px Arial'
-      ctx.fillStyle = '#6a6a6a'
+      ctx.fillStyle = '#9ca3af'
       ctx.fillText(`Оборудование: ${userEquipmentCount} единиц`, 300, 340)
       ctx.fillText('kitwise.app', 300, 380)
 
